@@ -4,6 +4,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"github.com/weikeit/mydocker/cmd/container"
+	"github.com/weikeit/mydocker/cmd/network"
 	"github.com/x-cray/logrus-prefixed-formatter"
 	"math/rand"
 	"os"
@@ -33,6 +34,7 @@ func main() {
 		container.Start,
 		container.Restart,
 		container.Delete,
+		network.Command,
 	}
 
 	app.Flags = []cli.Flag{

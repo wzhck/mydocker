@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"os"
 	"os/exec"
+	"path"
 	"strings"
 )
 
@@ -29,6 +30,23 @@ func FileOrDirExists(fileOrDir string) (bool, error) {
 	} else {
 		return false, err
 	}
+}
+
+func EnSureFileExists(fileName string) error {
+	dir, _ := path.Split(fileName)
+	exist, err := FileOrDirExists(dir)
+	if err != nil {
+		return err
+	}
+	if !exist {
+		if err = os.MkdirAll(dir, 0755); err != nil {
+			return err
+		}
+	}
+
+	file, err := os.OpenFile(fileName, os.O_RDONLY|os.O_CREATE, 0644)
+	defer file.Close()
+	return err
 }
 
 func DirIsMounted(dir string) bool {
