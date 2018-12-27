@@ -266,19 +266,9 @@ func (c *Container) Exec(cmdArray []string) error {
 
 func (c *Container) Stop() error {
 	if c.Network != "" {
-		if err := network.Init(); err != nil {
-			return err
-		}
 		if err := c.handleNetwork(Delete); err != nil {
 			// just need to record error logs if failed.
 			log.Errorf("failed to cleanup networks of container %s: %v",
-				c.Uuid, err)
-		}
-
-		nw := network.Networks[c.Network]
-		ip := net.ParseIP(c.IPAddr)
-		if err := network.IPAllocator.Release(nw, &ip); err != nil {
-			log.Errorf("failed to release ipaddr of container %s: %v",
 				c.Uuid, err)
 		}
 	}
@@ -335,6 +325,24 @@ func (c *Container) Delete() error {
 			return err
 		}
 	}
+
+	if c.Network != "" {
+		if err := network.Init(); err != nil {
+			return err
+		}
+
+		nw := network.Networks[c.Network]
+		ip := net.ParseIP(c.IPAddr)
+		if err := network.IPAllocator.Release(nw, &ip); err != nil {
+			log.Errorf("failed to release ipaddr of container %s: %v",
+				c.Uuid, err)
+		}
+
+		ep := &network.Endpoint{Uuid: c.Uuid}
+		// delete the endpoint config file.
+		ep.Delete()
+	}
+
 	return deleteContainerRootfs(c)
 }
 

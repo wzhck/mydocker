@@ -13,11 +13,21 @@ import (
 )
 
 func (ep *Endpoint) ConfigFileName() (string, error) {
-	configFileName := path.Join(EndpointDir, ep.Uuid+".json")
-	if err := util.EnSureFileExists(configFileName); err != nil {
-		return "", err
+	if ep.Uuid == "" {
+		return "", fmt.Errorf("endpoint uuid is empty")
 	}
-	return configFileName, nil
+	return path.Join(EndpointDir, ep.Uuid+".json"), nil
+}
+
+func (ep *Endpoint) Delete() error {
+	configFileName, err := ep.ConfigFileName()
+	if err != nil {
+		return err
+	}
+	if err := util.EnSureFileExists(configFileName); err != nil {
+		return err
+	}
+	return os.Remove(configFileName)
 }
 
 func (ep *Endpoint) AddIPAddrAndRoute(pid int) error {
@@ -173,6 +183,9 @@ func (ep *Endpoint) Dump() error {
 	if err != nil {
 		return err
 	}
+	if err := util.EnSureFileExists(configFileName); err != nil {
+		return err
+	}
 
 	flags := os.O_WRONLY | os.O_TRUNC | os.O_CREATE
 	configFile, err := os.OpenFile(configFileName, int(flags), 0644)
@@ -193,6 +206,9 @@ func (ep *Endpoint) Dump() error {
 func (ep *Endpoint) Load() error {
 	configFileName, err := ep.ConfigFileName()
 	if err != nil {
+		return err
+	}
+	if err := util.EnSureFileExists(configFileName); err != nil {
 		return err
 	}
 

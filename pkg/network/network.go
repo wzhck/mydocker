@@ -156,11 +156,23 @@ func (nw *Network) Delete() error {
 }
 
 func (nw *Network) Connect(uuid string, pid int, ipaddr string, portMaps []string) error {
-	ep := &Endpoint{
-		Uuid:     uuid,
-		IPAddr:   net.ParseIP(ipaddr),
-		PortMaps: portMaps,
-		Network:  nw,
+	ep := &Endpoint{Uuid: uuid}
+	epConfigFileName, err := ep.ConfigFileName()
+	if err != nil {
+		return err
+	}
+
+	if exist, _ := util.FileOrDirExists(epConfigFileName); exist {
+		if err := ep.Load(); err != nil {
+			return err
+		}
+	} else {
+		ep = &Endpoint{
+			Uuid:     uuid,
+			IPAddr:   net.ParseIP(ipaddr),
+			PortMaps: portMaps,
+			Network:  nw,
+		}
 	}
 
 	if err := Drivers[nw.Driver].Connect(nw, ep); err != nil {
@@ -196,11 +208,7 @@ func (nw *Network) DisConnect(uuid string, pid int) error {
 		return fmt.Errorf("failed to delete veth peers for container %s: %v", uuid, err)
 	}
 
-	if epConfigFileName, err := ep.ConfigFileName(); err == nil {
-		return os.Remove(epConfigFileName)
-	} else {
-		return err
-	}
+	return nil
 }
 
 func (nw *Network) Dump() error {

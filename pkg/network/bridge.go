@@ -47,27 +47,29 @@ func (bd *BridgeDriver) Delete(nw *Network) error {
 }
 
 func (bd *BridgeDriver) Connect(nw *Network, ep *Endpoint) error {
-	br, err := netlink.LinkByName(nw.Name)
-	if err != nil {
-		return err
-	}
+	if ep.Device == nil {
+		br, err := netlink.LinkByName(nw.Name)
+		if err != nil {
+			return err
+		}
 
-	uuid, err := util.Uuid()
-	if err != nil {
-		return err
-	}
+		uuid, err := util.Uuid()
+		if err != nil {
+			return err
+		}
 
-	// fetch the first 8 chars of standard uuid string.
-	uuid = uuid[:8]
+		// fetch the first 8 chars of standard uuid string.
+		uuid = uuid[:8]
 
-	la := netlink.NewLinkAttrs()
-	la.Name = "veth-" + uuid
-	// bind this veth onto the bridge
-	la.MasterIndex = br.Attrs().Index
+		la := netlink.NewLinkAttrs()
+		la.Name = "veth-" + uuid
+		// bind this veth onto the bridge
+		la.MasterIndex = br.Attrs().Index
 
-	ep.Device = &netlink.Veth{
-		LinkAttrs: la,
-		PeerName:  "cif-" + uuid,
+		ep.Device = &netlink.Veth{
+			LinkAttrs: la,
+			PeerName:  "cif-" + uuid,
+		}
 	}
 
 	// ip link add veth-<uuid> type veth peer name cif-<uuid>
