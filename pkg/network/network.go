@@ -95,7 +95,7 @@ func Init() error {
 					Driver: driverName,
 				}
 
-				if err := nw.load(); err != nil {
+				if err := nw.Load(); err != nil {
 					return fmt.Errorf("failed to load the network %s of driver %s: %v",
 						nw.Name, driverName, err)
 				}
@@ -111,6 +111,15 @@ func Init() error {
 	return nil
 }
 
+func (nw *Network) ConfigFileName() (string, error) {
+	configDir := path.Join(DriversDir, nw.Driver)
+	configFileName := path.Join(configDir, nw.Name+".json")
+	if err := util.EnSureFileExists(configFileName); err != nil {
+		return "", err
+	}
+	return configFileName, nil
+}
+
 func (nw *Network) Create() error {
 	if err := Drivers[nw.Driver].Create(nw); err != nil {
 		return err
@@ -118,7 +127,7 @@ func (nw *Network) Create() error {
 	if err := IPAllocator.Init(nw); err != nil {
 		return err
 	}
-	return nw.dump()
+	return nw.Dump()
 }
 
 func (nw *Network) Delete() error {
@@ -130,7 +139,7 @@ func (nw *Network) Delete() error {
 			return err
 		}
 		delete(*IPAllocator.SubnetBitMap, nw.IPNet.String())
-		if err := IPAllocator.dump(); err != nil {
+		if err := IPAllocator.Dump(); err != nil {
 			return err
 		}
 	}
@@ -139,15 +148,106 @@ func (nw *Network) Delete() error {
 		return err
 	}
 
-	if configFileName, err := getConfigFileName(nw); err == nil {
+	if configFileName, err := nw.ConfigFileName(); err == nil {
 		return os.Remove(configFileName)
 	} else {
 		return err
 	}
 }
 
-// ref: http://choly.ca/post/go-json-marshalling
-func (nw *Network) Marshal() ([]byte, error) {
+func (nw *Network) Connect(uuid string, pid int, ipaddr string, portMaps []string) error {
+	ep := &Endpoint{
+		Uuid:     uuid,
+		IPAddr:   net.ParseIP(ipaddr),
+		PortMaps: portMaps,
+		Network:  nw,
+	}
+
+	if err := Drivers[nw.Driver].Connect(nw, ep); err != nil {
+		return fmt.Errorf("failed to init veth peers for container %s: %v", uuid, err)
+	}
+
+	if err := ep.AddIPAddrAndRoute(pid); err != nil {
+		return fmt.Errorf("failed to config ipaddr and route for container %s: %v", uuid, err)
+	}
+
+	if err := ep.AddPortMaps(); err != nil {
+		return fmt.Errorf("failed to config port maps for container %s: %v", uuid, err)
+	}
+
+	return ep.Dump()
+}
+
+func (nw *Network) DisConnect(uuid string, pid int) error {
+	ep := &Endpoint{Uuid: uuid}
+	if err := ep.Load(); err != nil {
+		return fmt.Errorf("failed to parse endpoint of container %s: %v", uuid, err)
+	}
+
+	if err := ep.DelPortMaps(); err != nil {
+		return fmt.Errorf("failed to delete port maps for container %s: %v", uuid, err)
+	}
+
+	if err := ep.DelIPAddrAndRoute(pid); err != nil {
+		return fmt.Errorf("failed to delete ipaddr and route for container %s: %v", uuid, err)
+	}
+
+	if err := Drivers[nw.Driver].DisConnect(nw, ep); err != nil {
+		return fmt.Errorf("failed to delete veth peers for container %s: %v", uuid, err)
+	}
+
+	if epConfigFileName, err := ep.ConfigFileName(); err == nil {
+		return os.Remove(epConfigFileName)
+	} else {
+		return err
+	}
+}
+
+func (nw *Network) Dump() error {
+	configFileName, err := nw.ConfigFileName()
+	if err != nil {
+		return err
+	}
+
+	flags := os.O_WRONLY | os.O_TRUNC | os.O_CREATE
+	configFile, err := os.OpenFile(configFileName, int(flags), 0644)
+	defer configFile.Close()
+	if err != nil {
+		return err
+	}
+
+	jsonBytes, err := nw.marshal()
+	if err != nil {
+		return err
+	}
+
+	_, err = configFile.Write(jsonBytes)
+	return err
+}
+
+func (nw *Network) Load() error {
+	configFileName, err := nw.ConfigFileName()
+	if err != nil {
+		return err
+	}
+
+	flags := os.O_RDONLY | os.O_CREATE
+	configFile, err := os.OpenFile(configFileName, int(flags), 0644)
+	defer configFile.Close()
+	if err != nil {
+		return err
+	}
+
+	jsonBytes := make([]byte, MaxBytes)
+	n, err := configFile.Read(jsonBytes)
+	if err != nil {
+		return err
+	}
+
+	return nw.unmarshal(jsonBytes[:n])
+}
+
+func (nw *Network) marshal() ([]byte, error) {
 	type nwAlias Network
 	return json.Marshal(&struct {
 		IPNet   string `json:"IPNet"`
@@ -160,7 +260,7 @@ func (nw *Network) Marshal() ([]byte, error) {
 	})
 }
 
-func (nw *Network) Unmarshal(data []byte) error {
+func (nw *Network) unmarshal(data []byte) error {
 	type nwAlias Network
 	aux := &struct {
 		IPNet   string `json:"IPNet"`
@@ -183,57 +283,4 @@ func (nw *Network) Unmarshal(data []byte) error {
 	nw.Gateway = GetIPFromSubnetByIndex(ipNet, 1)
 
 	return nil
-}
-
-func (nw *Network) dump() error {
-	configFileName, err := getConfigFileName(nw)
-	if err != nil {
-		return err
-	}
-
-	flags := os.O_WRONLY | os.O_TRUNC | os.O_CREATE
-	configFile, err := os.OpenFile(configFileName, int(flags), 0644)
-	defer configFile.Close()
-	if err != nil {
-		return err
-	}
-
-	jsonBytes, err := nw.Marshal()
-	if err != nil {
-		return err
-	}
-
-	_, err = configFile.Write(jsonBytes)
-	return err
-}
-
-func (nw *Network) load() error {
-	configFileName, err := getConfigFileName(nw)
-	if err != nil {
-		return err
-	}
-
-	flags := os.O_RDONLY | os.O_CREATE
-	configFile, err := os.OpenFile(configFileName, int(flags), 0644)
-	defer configFile.Close()
-	if err != nil {
-		return err
-	}
-
-	jsonBytes := make([]byte, MaxBytes)
-	n, err := configFile.Read(jsonBytes)
-	if err != nil {
-		return err
-	}
-
-	return nw.Unmarshal(jsonBytes[:n])
-}
-
-func getConfigFileName(nw *Network) (string, error) {
-	configDir := path.Join(DriversDir, nw.Driver)
-	configFileName := path.Join(configDir, nw.Name+".json")
-	if err := util.EnSureFileExists(configFileName); err != nil {
-		return "", err
-	}
-	return configFileName, nil
 }

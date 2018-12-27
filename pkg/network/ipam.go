@@ -11,7 +11,7 @@ import (
 )
 
 func (ipam *IPAM) Init(nw *Network) error {
-	if err := ipam.load(); err != nil {
+	if err := ipam.Load(); err != nil {
 		log.Debugf("(ignored) failed to load allocation info: %v", err)
 	}
 
@@ -32,11 +32,11 @@ func (ipam *IPAM) Init(nw *Network) error {
 	// e.g. there are 1<<8 = 256 available ip addresses
 	// for the subnet: 10.10.0.0/24
 	(*ipam.SubnetBitMap)[nw.IPNet.String()] = strings.Repeat("0", size)
-	return ipam.dump()
+	return ipam.Dump()
 }
 
 func (ipam *IPAM) Allocate(nw *Network) (net.IP, error) {
-	if err := ipam.load(); err != nil {
+	if err := ipam.Load(); err != nil {
 		log.Debugf("(ignored) failed to load allocation info: %v", err)
 	}
 
@@ -65,11 +65,11 @@ func (ipam *IPAM) Allocate(nw *Network) (net.IP, error) {
 				ip, nw.IPNet.String())
 
 			nw.Counts++
-			if err := nw.dump(); err != nil {
+			if err := nw.Dump(); err != nil {
 				return nil, err
 			}
 
-			return ip, ipam.dump()
+			return ip, ipam.Dump()
 		}
 	}
 
@@ -77,7 +77,7 @@ func (ipam *IPAM) Allocate(nw *Network) (net.IP, error) {
 }
 
 func (ipam *IPAM) Release(nw *Network, ip *net.IP) error {
-	if err := ipam.load(); err != nil {
+	if err := ipam.Load(); err != nil {
 		return fmt.Errorf("failed to load allocation info: %v", err)
 	}
 
@@ -112,15 +112,15 @@ func (ipam *IPAM) Release(nw *Network, ip *net.IP) error {
 		(*ipam.SubnetBitMap)[nw.IPNet.String()] = string(bitmaps)
 
 		nw.Counts--
-		if err := nw.dump(); err != nil {
+		if err := nw.Dump(); err != nil {
 			return err
 		}
 	}
 
-	return ipam.dump()
+	return ipam.Dump()
 }
 
-func (ipam *IPAM) dump() error {
+func (ipam *IPAM) Dump() error {
 	if err := util.EnSureFileExists(ipam.Allocator); err != nil {
 		return err
 	}
@@ -141,7 +141,7 @@ func (ipam *IPAM) dump() error {
 	return err
 }
 
-func (ipam *IPAM) load() error {
+func (ipam *IPAM) Load() error {
 	if err := util.EnSureFileExists(ipam.Allocator); err != nil {
 		return err
 	}

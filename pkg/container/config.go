@@ -25,6 +25,7 @@ const (
 	Stop    = "stop"
 	Start   = "start"
 	Restart = "restart"
+	Create  = "create"
 	Delete  = "delete"
 )
 

@@ -3,16 +3,20 @@ package container
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/Pallinder/go-randomdata"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"github.com/weikeit/mydocker/pkg/cgroups"
 	"github.com/weikeit/mydocker/pkg/cgroups/subsystems"
+	"github.com/weikeit/mydocker/pkg/network"
 	_ "github.com/weikeit/mydocker/pkg/nsenter"
 	"github.com/weikeit/mydocker/util"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/exec"
 	"path"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -25,17 +29,19 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 
 	detach := ctx.Bool("detach")
 
-	out, err := exec.Command("uuidgen").Output()
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate uuid: %v", err)
-	}
-	// remove the tailing newline.
-	uuid := string(out[:len(out)-1])
-
 	name := ctx.String("name")
 	if name == "" {
-		name = util.RandomName(14)
+		// generate a random name if necessary.
+		name = strings.ToLower(randomdata.SillyName())
 	}
+
+	uuid, err := util.Uuid()
+	if err != nil {
+		return nil, err
+	}
+
+	// fetch the last 12 chars of standard uuid string.
+	uuid = uuid[24:]
 
 	if c, _ := GetContainerByNameOrUuid(name); c != nil {
 		return nil, fmt.Errorf("the container name '%s' already exist", name)
@@ -70,8 +76,8 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 	}
 
 	var volumes []*Volume
-	for _, volume := range ctx.StringSlice("volume") {
-		volumePeers := strings.Split(volume, ":")
+	for _, volumeArg := range ctx.StringSlice("volume") {
+		volumePeers := strings.Split(volumeArg, ":")
 		if len(volumePeers) == 2 && volumePeers[0] != "" && volumePeers[1] != "" {
 			volumes = append(volumes, &Volume{
 				Source: volumePeers[0],
@@ -83,8 +89,8 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 	}
 
 	var envs []*Env
-	for _, env := range ctx.StringSlice("env") {
-		envPeers := strings.Split(env, "=")
+	for _, envArg := range ctx.StringSlice("env") {
+		envPeers := strings.Split(envArg, "=")
 		if len(envPeers) == 2 && envPeers[0] != "" && envPeers[1] != "" {
 			envs = append(envs, &Env{
 				Key:   envPeers[0],
@@ -92,6 +98,55 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 			})
 		} else {
 			return nil, fmt.Errorf("the argument of -e should be '-e key=value'")
+		}
+	}
+
+	var ports []*Port
+	for _, portArg := range ctx.StringSlice("publish") {
+		portPeers := strings.Split(portArg, ":")
+		if len(portPeers) == 2 && portPeers[0] != "" && portPeers[1] != "" {
+			port := &Port{
+				In:  portPeers[0],
+				Out: portPeers[1],
+			}
+
+			for _, portStr := range []string{port.In, port.Out} {
+				if portNum, err := strconv.Atoi(portStr); err != nil {
+					return nil, fmt.Errorf("the port %s is not integer", portStr)
+				} else if portNum < 0 || portNum > 65535 {
+					return nil, fmt.Errorf("the port %s is out of [0, 65535]", portStr)
+				}
+			}
+
+			if server, err := net.Listen("tcp", ":"+port.Out); err != nil {
+				return nil, fmt.Errorf("the host port %s is already in use",
+					port.Out)
+			} else {
+				server.Close()
+			}
+
+			ports = append(ports, port)
+		} else {
+			return nil, fmt.Errorf("the argument of -p should be '-p in:out'")
+		}
+	}
+
+	nwName := ctx.String("network")
+	var ipaddr string
+	if nwName != "" {
+		if err := network.Init(); err != nil {
+			return nil, err
+		}
+
+		nw, ok := network.Networks[nwName]
+		if !ok {
+			return nil, fmt.Errorf("no such network %s, please create it first", nwName)
+		}
+
+		if ip, err := network.IPAllocator.Allocate(nw); err != nil {
+			return nil, fmt.Errorf("failed to allocate new ip from network %s: %v", nwName, err)
+		} else {
+			ipaddr = ip.String()
 		}
 	}
 
@@ -104,6 +159,9 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 		Rootfs:     rootfs,
 		Volumes:    volumes,
 		Envs:       envs,
+		Ports:      ports,
+		Network:    nwName,
+		IPAddr:     ipaddr,
 		Status:     Creating,
 		CgroupPath: Mydocker + "/" + uuid,
 		CreateTime: time.Now().Format("2006-01-02 15:04:05"),
@@ -135,7 +193,7 @@ func (c *Container) Run() error {
 	util.PrintExeFile(parentCmd.Process.Pid)
 
 	// should call c.Record() after modifying c.Pid
-	if err := c.Record(); err != nil {
+	if err := c.Dump(); err != nil {
 		return err
 	}
 
@@ -151,8 +209,13 @@ func (c *Container) Run() error {
 
 	cm.Apply(parentCmd.Process.Pid)
 
+	if err := c.handleNetwork(Create); err != nil {
+		return err
+	}
+
 	if !c.Detach {
 		parentCmd.Wait()
+		c.handleNetwork(Delete)
 		return deleteContainerRootfs(c)
 	} else {
 		_, err := fmt.Fprintln(os.Stdout, c.Uuid)
@@ -202,6 +265,24 @@ func (c *Container) Exec(cmdArray []string) error {
 }
 
 func (c *Container) Stop() error {
+	if c.Network != "" {
+		if err := network.Init(); err != nil {
+			return err
+		}
+		if err := c.handleNetwork(Delete); err != nil {
+			// just need to record error logs if failed.
+			log.Errorf("failed to cleanup networks of container %s: %v",
+				c.Uuid, err)
+		}
+
+		nw := network.Networks[c.Network]
+		ip := net.ParseIP(c.IPAddr)
+		if err := network.IPAllocator.Release(nw, &ip); err != nil {
+			log.Errorf("failed to release ipaddr of container %s: %v",
+				c.Uuid, err)
+		}
+	}
+
 	msg := "failed to stop container %s by sending %s signal"
 
 	if exist, _ := util.FileOrDirExists(fmt.Sprintf("/proc/%d", c.Pid)); exist {
@@ -223,7 +304,7 @@ func (c *Container) Stop() error {
 
 	c.Pid = 0
 	c.Status = Stopped
-	if err := c.Record(); err != nil {
+	if err := c.Dump(); err != nil {
 		return fmt.Errorf("failed to modify the status of container %s : %v",
 			c.Uuid, err)
 	}
@@ -257,7 +338,7 @@ func (c *Container) Delete() error {
 	return deleteContainerRootfs(c)
 }
 
-func (c *Container) Record() error {
+func (c *Container) Dump() error {
 	containerBytes, err := json.Marshal(c)
 	if err != nil {
 		log.Warnf("failed to decode container object using json: %v", err)
@@ -275,4 +356,31 @@ func (c *Container) Record() error {
 			configFileName, err)
 	}
 	return nil
+}
+
+func (c *Container) handleNetwork(action string) error {
+	if c.Network == "" {
+		return nil
+	}
+
+	var portMaps []string
+	for _, port := range c.Ports {
+		portMaps = append(portMaps, fmt.Sprintf("%s:%s",
+			port.In, port.Out))
+	}
+
+	if err := network.Init(); err != nil {
+		return err
+	}
+
+	nw := network.Networks[c.Network]
+
+	switch action {
+	case Create:
+		return nw.Connect(c.Uuid, c.Pid, c.IPAddr, portMaps)
+	case Delete:
+		return nw.DisConnect(c.Uuid, c.Pid)
+	default:
+		return fmt.Errorf("unknown action: %s", action)
+	}
 }

@@ -1,6 +1,8 @@
 package container
 
-import "github.com/weikeit/mydocker/pkg/cgroups/subsystems"
+import (
+	"github.com/weikeit/mydocker/pkg/cgroups/subsystems"
+)
 
 type AufsStorage struct {
 	ContainerDir string `json:"ContainerDir"`
@@ -19,6 +21,11 @@ type Env struct {
 	Value string `json:"Value"`
 }
 
+type Port struct {
+	In  string `json:"In"`
+	Out string `json:"Out"`
+}
+
 type Image struct {
 	Name      string `json:"Name"`
 	TarFile   string `json:"TarFile"`
@@ -28,8 +35,8 @@ type Image struct {
 type Container struct {
 	Detach     bool         `json:"Detach"`
 	Name       string       `json:"Name"`
-	Image      *Image       `json:"Image"`
 	Uuid       string       `json:"Uuid"`
+	Image      *Image       `json:"Image"`
 	Pid        int          `json:"Pid"`
 	CgroupPath string       `json:"CgroupPath"`
 	CreateTime string       `json:"CreateTime"`
@@ -38,6 +45,9 @@ type Container struct {
 	Rootfs     *AufsStorage `json:"Rootfs"`
 	Volumes    []*Volume    `json:"Volumes"`
 	Envs       []*Env       `json:"Envs"`
+	Network    string       `json:"Network"`
+	IPAddr     string       `json:"IPAddr"`
+	Ports      []*Port      `json:"Ports"`
 
 	// the resources limits.
 	Resources *subsystems.ResourceConfig `json:"Resources"`

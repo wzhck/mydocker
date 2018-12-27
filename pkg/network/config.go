@@ -20,6 +20,7 @@ const (
 var (
 	NetworksDir      = path.Join(MyDockerDir, "networks")
 	DriversDir       = path.Join(NetworksDir, "drivers")
+	EndpointDir      = path.Join(NetworksDir, "endpoints")
 	IPAMDir          = path.Join(NetworksDir, "ipam")
 	DefaultAllocator = path.Join(IPAMDir, "subnets.json")
 )
@@ -40,5 +41,6 @@ var IPAllocator = &IPAM{
 }
 
 var iptablesRules = map[string]string{
-	"masq": "-t nat {action} POSTROUTING -s {src} ! -o {out} -j MASQUERADE",
+	"snat": "-t nat {action} POSTROUTING -s {source} ! -o {outDevice} -j MASQUERADE",
+	"dnat": "-t nat {action} PREROUTING -p tcp -m tcp --dport {hostPort} -j DNAT --to-destination {containerIP}:{containerPort}",
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
+	"github.com/weikeit/mydocker/util"
 	"net"
 	"os/exec"
 	"strings"
@@ -30,7 +31,7 @@ func (bd *BridgeDriver) Create(nw *Network) error {
 }
 
 func (bd *BridgeDriver) Delete(nw *Network) error {
-	cmd := getIPTablesCmd("-D", nw.IPNet.String(), nw.Name)
+	cmd := GetSnatIPTablesCmd("-D", nw.IPNet.String(), nw.Name)
 	if _, err := cmd.Output(); err != nil {
 		return fmt.Errorf("failed to remove iptables: %v", err)
 	}
@@ -41,14 +42,61 @@ func (bd *BridgeDriver) Delete(nw *Network) error {
 	if err != nil {
 		return err
 	}
+
 	return netlink.LinkDel(br)
 }
 
 func (bd *BridgeDriver) Connect(nw *Network, ep *Endpoint) error {
+	br, err := netlink.LinkByName(nw.Name)
+	if err != nil {
+		return err
+	}
+
+	uuid, err := util.Uuid()
+	if err != nil {
+		return err
+	}
+
+	// fetch the first 8 chars of standard uuid string.
+	uuid = uuid[:8]
+
+	la := netlink.NewLinkAttrs()
+	la.Name = "veth-" + uuid
+	// bind this veth onto the bridge
+	la.MasterIndex = br.Attrs().Index
+
+	ep.Device = &netlink.Veth{
+		LinkAttrs: la,
+		PeerName:  "cif-" + uuid,
+	}
+
+	// ip link add veth-<uuid> type veth peer name cif-<uuid>
+	// brctl addif ${bridgeName} veth-<uuid>
+	if err := netlink.LinkAdd(ep.Device); err != nil {
+		return fmt.Errorf("failed to add endpoint device: %v", err)
+	}
+
+	// ip link set veth-<uuid> up
+	if err := netlink.LinkSetUp(ep.Device); err != nil {
+		return fmt.Errorf("failed to set veth device %s up: %v",
+			ep.Device.Name, err)
+	}
+
 	return nil
 }
 
 func (bd *BridgeDriver) DisConnect(nw *Network, ep *Endpoint) error {
+	// ip link set veth-<uuid> down
+	if err := netlink.LinkSetDown(ep.Device); err != nil {
+		return fmt.Errorf("failed to set veth device %s down: %v",
+			ep.Device.Name, err)
+	}
+
+	// brctl delif ${bridgeName} veth-<uuid>
+	if err := netlink.LinkDel(ep.Device); err != nil {
+		return fmt.Errorf("failed to del endpoint device: %v", err)
+	}
+
 	return nil
 }
 
@@ -73,7 +121,7 @@ func (bd *BridgeDriver) initBridge(nw *Network) error {
 	}
 
 	// step4: set iptables for the bridge.
-	if err := setIPTables(bridgeName, nw.IPNet); err != nil {
+	if err := setSnatIPTables(bridgeName, nw.IPNet); err != nil {
 		return fmt.Errorf("failed to set iptables for bridge '%s': %v",
 			bridgeName, err)
 	}
@@ -105,7 +153,6 @@ func createBridgeInterface(bridgeName string) error {
 	return nil
 }
 
-// set the ip addr of a netlink interface
 func setInterfaceIP(ifaceName string, ipNet *net.IPNet) error {
 	iface, err := netlink.LinkByName(ifaceName)
 	if err != nil {
@@ -118,6 +165,7 @@ func setInterfaceIP(ifaceName string, ipNet *net.IPNet) error {
 		return fmt.Errorf("failed to get ip addrs of the interface '%s': %v",
 			ifaceName, err)
 	}
+
 	for _, addr := range addrs {
 		if addr.IP.String() == ipNet.IP.String() {
 			log.Debugf("the ip addr '%s' on the interface '%s' already exists",
@@ -153,27 +201,18 @@ func setInterfaceUP(ifaceName string) error {
 	return nil
 }
 
-func setIPTables(bridgeName string, subnet *net.IPNet) error {
+func setSnatIPTables(bridgeName string, subnet *net.IPNet) error {
 	var cmd *exec.Cmd
 
-	cmd = getIPTablesCmd("-C", subnet.String(), bridgeName)
+	cmd = GetSnatIPTablesCmd("-C", subnet.String(), bridgeName)
 	if _, err := cmd.Output(); err == nil {
 		return nil
 	}
 
-	cmd = getIPTablesCmd("-A", subnet.String(), bridgeName)
+	cmd = GetSnatIPTablesCmd("-A", subnet.String(), bridgeName)
 	if _, err := cmd.Output(); err != nil {
 		return fmt.Errorf("failed to set iptables: %v", err)
 	}
 
 	return nil
-}
-
-func getIPTablesCmd(action, src, device string) *exec.Cmd {
-	argsReplacer := strings.NewReplacer(
-		"{action}", action,
-		"{src}", src,
-		"{out}", device)
-	args := argsReplacer.Replace(iptablesRules["masq"])
-	return exec.Command("iptables", strings.Split(args, " ")...)
 }

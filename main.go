@@ -40,7 +40,7 @@ func main() {
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
 			Name:  "debug",
-			Usage: "Print mydocker debug logs",
+			Usage: "print mydocker debug logs",
 		},
 	}
 

@@ -15,12 +15,12 @@ type Network struct {
 }
 
 type Endpoint struct {
-	Uuid        string           `json:"Uuid"`
-	Device      netlink.Veth     `json:"Device"`
-	IPAddress   net.IP           `json:"IPAddress"`
-	MacAddress  net.HardwareAddr `json:"MacAddress"`
-	PortMapping []string         `json:"PortMapping"`
-	Network     *Network         `json:"Network"`
+	// same with the container's uuid
+	Uuid     string        `json:"Uuid"`
+	IPAddr   net.IP        `json:"IPAddr"`
+	Network  *Network      `json:"Network"`
+	Device   *netlink.Veth `json:"Device"`
+	PortMaps []string      `json:"PortMaps"`
 }
 
 type IPAM struct {

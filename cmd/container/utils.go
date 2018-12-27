@@ -15,14 +15,15 @@ func listContainers(_ *cli.Context) error {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 12, 1, 3, ' ', 0)
-	fmt.Fprintf(w, "CONTAINER ID\tNAME\tIMAGE\tSTATUS\tPID\tCOMMAND\tCREATED\n")
+	fmt.Fprintf(w, "CONTAINER ID\tNAME\tIMAGE\tSTATUS\tPID\tIP\tCOMMAND\tCREATED\n")
 	for _, c := range allContainers {
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%d\t%s\t%s\n",
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%d\t%s\t%s\t%s\n",
 			c.Uuid,
 			c.Name,
 			c.Image.Name,
 			c.Status,
 			c.Pid,
+			c.IPAddr,
 			c.Commands,
 			c.CreateTime)
 	}

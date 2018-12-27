@@ -61,6 +61,14 @@ var Run = cli.Command{
 			Name:  "env, e",
 			Usage: "Set environment variables, e.g. -e key=value",
 		},
+		cli.StringFlag{
+			Name:  "network, n",
+			Usage: "Connect the container to a network",
+		},
+		cli.StringSliceFlag{
+			Name:  "publish, p",
+			Usage: "Publish the container's port(s) to the host",
+		},
 	},
 	Action: func(ctx *cli.Context) error {
 		c, err := container.NewContainer(ctx)

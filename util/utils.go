@@ -4,7 +4,6 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
-	"math/rand"
 	"os"
 	"os/exec"
 	"path"
@@ -63,15 +62,11 @@ func GetEnvsByPid(pid int) ([]string, error) {
 	return strings.Split(string(envsBytes), "\u0000"), nil
 }
 
-func RandomName(n uint32) string {
-	letterBytes := "abcdefghijklmnopqrstuvwxyz"
-	b := make([]byte, n)
-	for i := range b {
-		if i%5 == 4 {
-			b[i] = '_'
-			continue
-		}
-		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+func Uuid() (string, error) {
+	out, err := exec.Command("uuidgen", "-r").Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to generate uuid: %v", err)
 	}
-	return string(b)
+	// remove the tailing newline.
+	return string(out[:len(out)-1]), nil
 }

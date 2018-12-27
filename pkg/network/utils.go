@@ -3,6 +3,8 @@ package network
 import (
 	"encoding/binary"
 	"net"
+	"os/exec"
+	"strings"
 )
 
 func IP2Int(ip net.IP) uint32 {
@@ -31,4 +33,23 @@ func GetIPFromSubnetByIndex(subnet *net.IPNet, index int) *net.IPNet {
 		IP:   Int2IP(subnetIPInt + uint32(index)),
 		Mask: subnet.Mask,
 	}
+}
+
+func GetSnatIPTablesCmd(action, source, outDevice string) *exec.Cmd {
+	argsReplacer := strings.NewReplacer(
+		"{action}", action,
+		"{source}", source,
+		"{outDevice}", outDevice)
+	args := argsReplacer.Replace(iptablesRules["snat"])
+	return exec.Command("iptables", strings.Split(args, " ")...)
+}
+
+func GetDnatIPTablesCmd(action, hostPort, containerIP, containerPort string) *exec.Cmd {
+	argsReplacer := strings.NewReplacer(
+		"{action}", action,
+		"{hostPort}", hostPort,
+		"{containerIP}", containerIP,
+		"{containerPort}", containerPort)
+	args := argsReplacer.Replace(iptablesRules["dnat"])
+	return exec.Command("iptables", strings.Split(args, " ")...)
 }
