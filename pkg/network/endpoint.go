@@ -68,12 +68,13 @@ func (ep *Endpoint) AddIPAddrAndRoute(pid int) error {
 	ipNet := *ep.Network.IPNet
 	ipNet.IP = ep.IPAddr
 
+	// [ip netns exec $netns] ip addr add $addr dev cif-<uuid>
 	if err := setInterfaceIP(ep.Device.PeerName, &ipNet); err != nil {
 		return fmt.Errorf("failed to set ip for container veth %s: %v",
 			ep.Device.PeerName, err)
 	}
 
-	// ip link set cif-<uuid> up
+	// [ip netns exec $netns] ip link set cif-<uuid> up
 	for _, ifaceName := range []string{ep.Device.PeerName, "lo"} {
 		if err := setInterfaceUP(ifaceName); err != nil {
 			return fmt.Errorf("failed to set interface %s up: %v",
@@ -88,6 +89,7 @@ func (ep *Endpoint) AddIPAddrAndRoute(pid int) error {
 		Dst:       dstNet,
 	}
 
+	// [ip netns exec $netns] ip route add default [dev cif-<uuid>] via $gateway
 	if err := netlink.RouteAdd(defaultRoute); err != nil {
 		return fmt.Errorf("failed to set default route: %v", err)
 	}
@@ -96,6 +98,11 @@ func (ep *Endpoint) AddIPAddrAndRoute(pid int) error {
 }
 
 func (ep *Endpoint) DelIPAddrAndRoute(pid int) error {
+	pidFile := fmt.Sprintf("/proc/%d", pid)
+	if exist, _ := util.FileOrDirExists(pidFile); !exist {
+		return fmt.Errorf("container (pid: %d) is not running", pid)
+	}
+
 	netnsFile, err := os.OpenFile("/proc/1/ns/net", os.O_RDONLY, 0)
 	if err != nil {
 		return fmt.Errorf("failed to get netns of current process")

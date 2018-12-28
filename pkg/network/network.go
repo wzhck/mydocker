@@ -8,6 +8,7 @@ import (
 	"github.com/weikeit/mydocker/util"
 	"net"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"strings"
@@ -70,6 +71,17 @@ func NewNetwork(ctx *cli.Context) (*Network, error) {
 }
 
 func Init() error {
+	// need to reset the rule of iptables FORWARD chain to ACCEPT, because
+	// docker 1.13+ changed the default iptables forwarding policy to DROP
+	// https://github.com/moby/moby/pull/28257/files
+	// https://github.com/kubernetes/kubernetes/issues/40182
+	enableForwardCmd := exec.Command("iptables", "-P", "FORWARD", "ACCEPT")
+	if _, err := enableForwardCmd.Output(); err != nil {
+		log.Warnf("failed to execute `iptables -P FORWARD ACCEPT`! " +
+			"execute the command by yourself or the following one: " +
+			"echo 0 > /proc/sys/net/bridge/bridge-nf-call-iptables")
+	}
+
 	for driverName := range Drivers {
 		log.Debugf("init networks of %s driver...", driverName)
 		driverDir := path.Join(DriversDir, driverName)

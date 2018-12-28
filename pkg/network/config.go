@@ -41,6 +41,6 @@ var IPAllocator = &IPAM{
 }
 
 var iptablesRules = map[string]string{
-	"snat": "-t nat {action} POSTROUTING -s {source} ! -o {outDevice} -j MASQUERADE",
+	"snat": "-t nat {action} POSTROUTING -s {subnet} ! -o {bridge} -j MASQUERADE",
 	"dnat": "-t nat {action} PREROUTING -p tcp -m tcp --dport {hostPort} -j DNAT --to-destination {containerIP}:{containerPort}",
 }

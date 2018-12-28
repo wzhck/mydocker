@@ -73,6 +73,7 @@ func (bd *BridgeDriver) Connect(nw *Network, ep *Endpoint) error {
 	}
 
 	// ip link add veth-<uuid> type veth peer name cif-<uuid>
+	// ip link set veth-<uuid> master ${bridgeName} or
 	// brctl addif ${bridgeName} veth-<uuid>
 	if err := netlink.LinkAdd(ep.Device); err != nil {
 		return fmt.Errorf("failed to add endpoint device: %v", err)
@@ -145,8 +146,9 @@ func createBridgeInterface(bridgeName string) error {
 	br := &netlink.Bridge{}
 	br.LinkAttrs = la
 
-	// i.e. `ip link add $br`
-	log.Debugf("create the bridge %s using the command: `ip link add %s`",
+	// brctl addbr $bridgeName or
+	// ip link add $bridgeName type bridge
+	log.Debugf("create a new linux bridge %s: `ip link add %s type bridge`",
 		bridgeName, bridgeName)
 	if err = netlink.LinkAdd(br); err != nil {
 		return fmt.Errorf("failed to create bridge %s: %v", bridgeName, err)
@@ -183,7 +185,7 @@ func setInterfaceIP(ifaceName string, ipNet *net.IPNet) error {
 	// log.Debugf("get the broadcast %s of subnet %s", broadcast, ipNet)
 	// addr.Broadcast = broadcast.IP
 
-	// i.e. `ip addr add $addr dev $iface`
+	// ip addr add $addr dev $ifaceName
 	log.Debugf("set the ip address %s on the bridge %s", ipNet.IP, ifaceName)
 	return netlink.AddrAdd(iface, addr)
 }
@@ -194,7 +196,7 @@ func setInterfaceUP(ifaceName string) error {
 		return fmt.Errorf("failed to get interface '%s': %v", ifaceName, err)
 	}
 
-	// i.e. `ip link set $iface up`
+	// ip link set $ifaceName up
 	log.Debugf("set the bridge %s up", ifaceName)
 	if err = netlink.LinkSetUp(iface); err != nil {
 		return fmt.Errorf("failed to enable interface '%s': %v", ifaceName, err)

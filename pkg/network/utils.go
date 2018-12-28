@@ -35,11 +35,11 @@ func GetIPFromSubnetByIndex(subnet *net.IPNet, index int) *net.IPNet {
 	}
 }
 
-func GetSnatIPTablesCmd(action, source, outDevice string) *exec.Cmd {
+func GetSnatIPTablesCmd(action, subnet, bridge string) *exec.Cmd {
 	argsReplacer := strings.NewReplacer(
 		"{action}", action,
-		"{source}", source,
-		"{outDevice}", outDevice)
+		"{subnet}", subnet,
+		"{bridge}", bridge)
 	args := argsReplacer.Replace(iptablesRules["snat"])
 	return exec.Command("iptables", strings.Split(args, " ")...)
 }
