@@ -4,9 +4,11 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/weikeit/mydocker/util"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
+	"strings"
 	"syscall"
 )
 
@@ -87,7 +89,7 @@ func createContainerRootfs(c *Container) error {
 			return err
 		}
 	}
-	return nil
+	return c.setDNS()
 }
 
 func createReadOnlyLayer(c *Container) error {
@@ -171,6 +173,24 @@ func mountLocalVolumes(c *Container) error {
 			return fmt.Errorf("failed to mount local volume: %v", err)
 		}
 	}
+	return nil
+}
+
+func (c *Container) setDNS() error {
+	var nameservers []string
+	for _, dns := range c.Dns {
+		nameservers = append(nameservers, fmt.Sprintf("nameserver %s", dns))
+	}
+	resolvContent := []byte(strings.Join(nameservers, "\n") + "\n")
+
+	resolvConf := path.Join(c.Rootfs.WriteDir, "etc", "resolv.conf")
+	if err := util.EnSureFileExists(resolvConf); err != nil {
+		return fmt.Errorf("failed to create %s in container: %v", resolvConf, err)
+	}
+	if err := ioutil.WriteFile(resolvConf, resolvContent, 0600); err != nil {
+		return fmt.Errorf("failed to write contents into %s: %v", resolvConf, err)
+	}
+
 	return nil
 }
 

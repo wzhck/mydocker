@@ -34,8 +34,9 @@ type Image struct {
 
 type Container struct {
 	Detach     bool         `json:"Detach"`
-	Name       string       `json:"Name"`
 	Uuid       string       `json:"Uuid"`
+	Name       string       `json:"Name"`
+	Dns        []string     `json:"Dns"`
 	Image      *Image       `json:"Image"`
 	Pid        int          `json:"Pid"`
 	CgroupPath string       `json:"CgroupPath"`

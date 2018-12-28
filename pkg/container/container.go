@@ -43,6 +43,8 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 	// fetch the last 12 chars of standard uuid string.
 	uuid = uuid[24:]
 
+	dns := ctx.StringSlice("dns")
+
 	if c, _ := GetContainerByNameOrUuid(name); c != nil {
 		return nil, fmt.Errorf("the container name '%s' already exist", name)
 	}
@@ -154,6 +156,7 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 		Detach:     detach,
 		Uuid:       uuid,
 		Name:       name,
+		Dns:        dns,
 		Image:      image,
 		Commands:   commands,
 		Rootfs:     rootfs,

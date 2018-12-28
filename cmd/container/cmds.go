@@ -28,6 +28,11 @@ var Run = cli.Command{
 			Name:  "name",
 			Usage: "Assign a name to the container",
 		},
+		cli.StringSliceFlag{
+			Name:  "dns",
+			Value: &cli.StringSlice{"8.8.8.8", "8.8.4.4"},
+			Usage: "Set DNS servers",
+		},
 		cli.StringFlag{
 			Name:  "image",
 			Usage: "The image to be used (alpine/busybox)",
