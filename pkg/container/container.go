@@ -352,7 +352,7 @@ func (c *Container) Delete() error {
 func (c *Container) Dump() error {
 	containerBytes, err := json.Marshal(c)
 	if err != nil {
-		log.Warnf("failed to decode container object using json: %v", err)
+		return fmt.Errorf("failed to encode container object using json: %v", err)
 	}
 
 	configFileName := path.Join(c.Rootfs.ContainerDir, ConfigName)
