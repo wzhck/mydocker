@@ -120,6 +120,28 @@ func Init() error {
 		}
 	}
 
+	if _, ok := Networks[DefaultNetwork]; !ok {
+		_, ipNet, err := net.ParseCIDR(DefaultCIDR)
+		if err != nil {
+			return err
+		}
+
+		defaultNW := &Network{
+			Name:       DefaultNetwork,
+			Counts:     0,
+			Driver:     Bridge,
+			IPNet:      ipNet,
+			Gateway:    GetIPFromSubnetByIndex(ipNet, 1),
+			CreateTime: time.Now().Format("2006-01-02 15:04:05"),
+		}
+
+		if err := defaultNW.Create(); err != nil {
+			return err
+		}
+
+		Networks[DefaultNetwork] = defaultNW
+	}
+
 	return nil
 }
 

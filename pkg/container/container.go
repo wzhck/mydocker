@@ -135,21 +135,23 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 
 	nwName := ctx.String("network")
 	var ipaddr string
-	if nwName != "" {
-		if err := network.Init(); err != nil {
-			return nil, err
-		}
+	if nwName == "" {
+		nwName = network.DefaultNetwork
+	}
 
-		nw, ok := network.Networks[nwName]
-		if !ok {
-			return nil, fmt.Errorf("no such network %s, please create it first", nwName)
-		}
+	if err := network.Init(); err != nil {
+		return nil, err
+	}
 
-		if ip, err := network.IPAllocator.Allocate(nw); err != nil {
-			return nil, fmt.Errorf("failed to allocate new ip from network %s: %v", nwName, err)
-		} else {
-			ipaddr = ip.String()
-		}
+	nw, ok := network.Networks[nwName]
+	if !ok {
+		return nil, fmt.Errorf("no such network %s, please create it first", nwName)
+	}
+
+	if ip, err := network.IPAllocator.Allocate(nw); err != nil {
+		return nil, fmt.Errorf("failed to allocate new ip from network %s: %v", nwName, err)
+	} else {
+		ipaddr = ip.String()
 	}
 
 	if err := image.ChangeCounts(img.RepoTag, "create"); err != nil {
