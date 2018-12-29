@@ -260,6 +260,9 @@ func (nw *Network) Load() error {
 
 	jsonBytes := make([]byte, MaxBytes)
 	n, err := configFile.Read(jsonBytes)
+	if n == 0 {
+		return nil
+	}
 	if err != nil {
 		return err
 	}

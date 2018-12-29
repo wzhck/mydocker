@@ -200,7 +200,7 @@ func Load() error {
 	return json.Unmarshal(jsonBytes[:n], &Images)
 }
 
-func CountsImage(repoTag, action string) error {
+func ChangeCounts(repoTag, action string) error {
 	if err := Load(); err != nil {
 		return err
 	}

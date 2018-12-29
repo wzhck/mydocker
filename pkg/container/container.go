@@ -55,9 +55,6 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := image.CountsImage(img.RepoTag, "create"); err != nil {
-		return nil, err
-	}
 
 	var commands []string
 	if len(img.Entrypoint) > 0 {
@@ -155,6 +152,10 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 		}
 	}
 
+	if err := image.ChangeCounts(img.RepoTag, "create"); err != nil {
+		return nil, err
+	}
+
 	return &Container{
 		Detach:     detach,
 		Uuid:       uuid,
@@ -196,9 +197,9 @@ func (c *Container) Run() error {
 
 	c.Pid = parentCmd.Process.Pid
 	c.Status = Running
-	util.PrintExeFile(parentCmd.Process.Pid)
+	// util.PrintExeFile(parentCmd.Process.Pid)
 
-	// should call c.Record() after modifying c.Pid
+	// MUST call c.Dump() after modifying c.Pid
 	if err := c.Dump(); err != nil {
 		return err
 	}
@@ -216,6 +217,9 @@ func (c *Container) Run() error {
 	cm.Apply(parentCmd.Process.Pid)
 
 	if err := c.handleNetwork(Create); err != nil {
+		if err := image.ChangeCounts(c.Image, "delete"); err != nil {
+			log.Debugf("failed to recover image counts: %v", err)
+		}
 		return err
 	}
 
@@ -274,7 +278,7 @@ func (c *Container) Stop() error {
 	if c.Network != "" {
 		if err := c.handleNetwork(Delete); err != nil {
 			// just need to record error logs if failed.
-			log.Errorf("failed to cleanup networks of container %s: %v",
+			log.Debugf("failed to cleanup networks of container %s: %v",
 				c.Uuid, err)
 		}
 	}
@@ -283,7 +287,7 @@ func (c *Container) Stop() error {
 
 	if exist, _ := util.FileOrDirExists(fmt.Sprintf("/proc/%d", c.Pid)); exist {
 		if err := syscall.Kill(c.Pid, syscall.SIGTERM); err != nil {
-			log.Warnf(msg, c.Uuid, "SIGTERM")
+			log.Debugf(msg, c.Uuid, "SIGTERM")
 			if err := syscall.Kill(c.Pid, syscall.SIGKILL); err != nil {
 				return fmt.Errorf(msg, c.Uuid, "SIGKILL")
 			}
@@ -353,7 +357,7 @@ func (c *Container) Delete() error {
 	if err != nil {
 		return err
 	}
-	if err := image.CountsImage(img.RepoTag, "delete"); err != nil {
+	if err := image.ChangeCounts(img.RepoTag, "delete"); err != nil {
 		return err
 	}
 

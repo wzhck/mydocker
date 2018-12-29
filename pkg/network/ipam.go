@@ -12,7 +12,7 @@ import (
 
 func (ipam *IPAM) Init(nw *Network) error {
 	if err := ipam.Load(); err != nil {
-		log.Debugf("(ignored) failed to load allocation info: %v", err)
+		return fmt.Errorf("failed to load IPAllocation info: %v", err)
 	}
 
 	// for subnet: 10.10.0.0/24, its mask is 255.255.255.0
@@ -37,7 +37,7 @@ func (ipam *IPAM) Init(nw *Network) error {
 
 func (ipam *IPAM) Allocate(nw *Network) (net.IP, error) {
 	if err := ipam.Load(); err != nil {
-		log.Debugf("(ignored) failed to load allocation info: %v", err)
+		return nil, fmt.Errorf("failed to load IPAllocation info: %v", err)
 	}
 
 	if err := ipam.Init(nw); err != nil {
@@ -78,7 +78,7 @@ func (ipam *IPAM) Allocate(nw *Network) (net.IP, error) {
 
 func (ipam *IPAM) Release(nw *Network, ip *net.IP) error {
 	if err := ipam.Load(); err != nil {
-		return fmt.Errorf("failed to load allocation info: %v", err)
+		return fmt.Errorf("failed to load IPAllocation info: %v", err)
 	}
 
 	if err := ipam.Init(nw); err != nil {
@@ -155,6 +155,9 @@ func (ipam *IPAM) Load() error {
 
 	jsonBytes := make([]byte, MaxBytes)
 	n, err := configFile.Read(jsonBytes)
+	if n == 0 {
+		return nil
+	}
 	if err != nil {
 		return err
 	}
