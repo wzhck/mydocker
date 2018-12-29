@@ -72,9 +72,6 @@ func NewParentProcess(c *Container) (*exec.Cmd, *os.File, error) {
 }
 
 func createContainerRootfs(c *Container) error {
-	if err := createReadOnlyLayer(c); err != nil {
-		return err
-	}
 	if err := createWriteLayer(c); err != nil {
 		return err
 	}
@@ -92,27 +89,6 @@ func createContainerRootfs(c *Container) error {
 	return c.setDNS()
 }
 
-func createReadOnlyLayer(c *Container) error {
-	// NOTE: c.Rootfs.ReadOnlyDir equals c.Image.RootfsDir
-	exist, err := util.FileOrDirExists(c.Rootfs.ReadOnlyDir)
-	if err != nil {
-		return fmt.Errorf("failed to check if the dir %s exists: %v",
-			c.Rootfs.ReadOnlyDir, err)
-	}
-	if exist {
-		return nil
-	}
-
-	if err := os.MkdirAll(c.Rootfs.ReadOnlyDir, 0777); err != nil {
-		return fmt.Errorf("failed to mkdir %s: %v", c.Rootfs.ReadOnlyDir, err)
-	}
-	if _, err := exec.Command("tar", "-xvf", c.Image.TarFile,
-		"-C", c.Image.RootfsDir).CombinedOutput(); err != nil {
-		return fmt.Errorf("failed to untar %s: %v", c.Rootfs.ReadOnlyDir, err)
-	}
-	return nil
-}
-
 func createWriteLayer(c *Container) error {
 	exist, err := util.FileOrDirExists(c.Rootfs.WriteDir)
 	if err != nil {
@@ -123,7 +99,7 @@ func createWriteLayer(c *Container) error {
 		return nil
 	}
 
-	if err := os.MkdirAll(c.Rootfs.WriteDir, 0777); err != nil {
+	if err := os.MkdirAll(c.Rootfs.WriteDir, 0755); err != nil {
 		return fmt.Errorf("failed to mkdir %s: %v", c.Rootfs.WriteDir, err)
 	}
 	return nil
@@ -139,7 +115,7 @@ func createMergeLayer(c *Container) error {
 		return nil
 	}
 
-	if err := os.MkdirAll(c.Rootfs.MergeDir, 0777); err != nil {
+	if err := os.MkdirAll(c.Rootfs.MergeDir, 0755); err != nil {
 		return fmt.Errorf("failed to mkdir %s: %v", c.Rootfs.MergeDir, err)
 	}
 	return nil
@@ -159,10 +135,10 @@ func mountMergeLayer(c *Container) error {
 
 func mountLocalVolumes(c *Container) error {
 	for _, volume := range c.Volumes {
-		if err := os.MkdirAll(volume.Source, 0777); err != nil {
+		if err := os.MkdirAll(volume.Source, 0755); err != nil {
 			return fmt.Errorf("failed to mkdir %s: %v", volume.Source, err)
 		}
-		if err := os.MkdirAll(volume.Target, 0777); err != nil {
+		if err := os.MkdirAll(volume.Target, 0755); err != nil {
 			return fmt.Errorf("failed to mkdir container volume dir %s: %v", volume.Target, err)
 		}
 

@@ -199,3 +199,23 @@ func Load() error {
 
 	return json.Unmarshal(jsonBytes[:n], &Images)
 }
+
+func CountsImage(repoTag, action string) error {
+	if err := Load(); err != nil {
+		return err
+	}
+
+	for _, img := range Images {
+		if img.RepoTag == repoTag {
+			switch action {
+			case "create":
+				img.Counts++
+			case "delete":
+				img.Counts--
+			}
+			return Dump()
+		}
+	}
+
+	return nil
+}

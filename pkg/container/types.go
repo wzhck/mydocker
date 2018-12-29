@@ -26,19 +26,13 @@ type Port struct {
 	Out string `json:"Out"`
 }
 
-type Image struct {
-	Name      string `json:"Name"`
-	TarFile   string `json:"TarFile"`
-	RootfsDir string `json:"RootfsDir"`
-}
-
 type Container struct {
 	Detach     bool         `json:"Detach"`
 	Uuid       string       `json:"Uuid"`
 	Name       string       `json:"Name"`
 	Dns        []string     `json:"Dns"`
-	Image      *Image       `json:"Image"`
 	Pid        int          `json:"Pid"`
+	Image      string       `json:"Image"`
 	CgroupPath string       `json:"CgroupPath"`
 	CreateTime string       `json:"CreateTime"`
 	Status     string       `json:"Status"`

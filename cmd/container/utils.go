@@ -20,7 +20,7 @@ func listContainers(_ *cli.Context) error {
 		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%d\t%s\t%s\t%s\n",
 			c.Uuid,
 			c.Name,
-			c.Image.Name,
+			c.Image,
 			c.Status,
 			c.Pid,
 			c.IPAddr,

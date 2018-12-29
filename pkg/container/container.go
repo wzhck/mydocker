@@ -8,6 +8,7 @@ import (
 	"github.com/urfave/cli"
 	"github.com/weikeit/mydocker/pkg/cgroups"
 	"github.com/weikeit/mydocker/pkg/cgroups/subsystems"
+	"github.com/weikeit/mydocker/pkg/image"
 	"github.com/weikeit/mydocker/pkg/network"
 	_ "github.com/weikeit/mydocker/pkg/nsenter"
 	"github.com/weikeit/mydocker/util"
@@ -23,10 +24,6 @@ import (
 )
 
 func NewContainer(ctx *cli.Context) (*Container, error) {
-	if len(ctx.Args()) < 1 {
-		return nil, fmt.Errorf("missing container commands")
-	}
-
 	detach := ctx.Bool("detach")
 
 	name := ctx.String("name")
@@ -49,30 +46,36 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 		return nil, fmt.Errorf("the container name '%s' already exist", name)
 	}
 
-	imageName := ctx.String("image")
-	if imageName == "" {
+	imgNameOrUuid := ctx.String("image")
+	if imgNameOrUuid == "" {
 		return nil, fmt.Errorf("the image name is required")
 	}
 
-	imageTarFile, ok := Images[imageName]
-	if !ok {
-		return nil, fmt.Errorf("only support alpine and busybox")
+	img, err := image.GetImageByNameOrUuid(imgNameOrUuid)
+	if err != nil {
+		return nil, err
 	}
-
-	image := &Image{
-		Name:      imageName,
-		TarFile:   imageTarFile,
-		RootfsDir: path.Join(ImagesDir, imageName),
+	if err := image.CountsImage(img.RepoTag, "create"); err != nil {
+		return nil, err
 	}
 
 	var commands []string
-	for _, arg := range ctx.Args() {
-		commands = append(commands, arg)
+	if len(img.Entrypoint) > 0 {
+		commands = append(commands, img.Entrypoint...)
+	}
+	if len(ctx.Args()) > 0 {
+		commands = append(commands, ctx.Args()...)
+	} else if len(img.Command) > 0 {
+		commands = append(commands, img.Command...)
+	}
+
+	if len(commands) == 0 {
+		return nil, fmt.Errorf("missing container commands")
 	}
 
 	rootfs := &AufsStorage{
 		ContainerDir: path.Join(ContainersDir, uuid),
-		ReadOnlyDir:  image.RootfsDir,
+		ReadOnlyDir:  img.RootDir(),
 		WriteDir:     path.Join(WriteLayterDir, uuid),
 		MergeDir:     path.Join(ContainersDir, uuid, "mnt"),
 	}
@@ -91,7 +94,7 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 	}
 
 	var envs []*Env
-	for _, envArg := range ctx.StringSlice("env") {
+	for _, envArg := range append(ctx.StringSlice("env"), img.Envs...) {
 		envPeers := strings.Split(envArg, "=")
 		if len(envPeers) == 2 && envPeers[0] != "" && envPeers[1] != "" {
 			envs = append(envs, &Env{
@@ -157,7 +160,7 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 		Uuid:       uuid,
 		Name:       name,
 		Dns:        dns,
-		Image:      image,
+		Image:      img.RepoTag,
 		Commands:   commands,
 		Rootfs:     rootfs,
 		Volumes:    volumes,
@@ -344,6 +347,14 @@ func (c *Container) Delete() error {
 		ep := &network.Endpoint{Uuid: c.Uuid}
 		// delete the endpoint config file.
 		ep.Delete()
+	}
+
+	img, err := image.GetImageByNameOrUuid(c.Image)
+	if err != nil {
+		return err
+	}
+	if err := image.CountsImage(img.RepoTag, "delete"); err != nil {
+		return err
 	}
 
 	return deleteContainerRootfs(c)

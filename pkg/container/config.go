@@ -29,13 +29,7 @@ const (
 	Delete  = "delete"
 )
 
-var Images = map[string]string{
-	"alpine":  "/root/alpine.tar",
-	"busybox": "/root/busybox.tar",
-}
-
 var (
-	ImagesDir      = path.Join(MyDockerDir, "images")
 	WriteLayterDir = path.Join(MyDockerDir, "writelayer")
 	ContainersDir  = path.Join(MyDockerDir, "containers")
 )
