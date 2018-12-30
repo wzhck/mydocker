@@ -42,7 +42,8 @@ func NewParentProcess(c *Container) (*exec.Cmd, *os.File, error) {
 				logFileName, err)
 		}
 	} else {
-		logFile, err = os.Open(logFileName)
+		flags := syscall.O_WRONLY | syscall.O_APPEND
+		logFile, err = os.OpenFile(logFileName, int(flags), 0644)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to open container log file %s: %v",
 				logFileName, err)

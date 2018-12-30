@@ -218,7 +218,7 @@ func (c *Container) Run() error {
 
 	cm.Apply(parentCmd.Process.Pid)
 
-	if err := c.handleNetwork(Create); err != nil {
+	if err := c.HandleNetwork(Create); err != nil {
 		if err := image.ChangeCounts(c.Image, "delete"); err != nil {
 			log.Debugf("failed to recover image counts: %v", err)
 		}
@@ -227,7 +227,8 @@ func (c *Container) Run() error {
 
 	if !c.Detach {
 		parentCmd.Wait()
-		c.handleNetwork(Delete)
+		c.HandleNetwork(Delete)
+		c.CleanNetworkImage()
 		return deleteContainerRootfs(c)
 	} else {
 		_, err := fmt.Fprintln(os.Stdout, c.Uuid)
@@ -278,7 +279,7 @@ func (c *Container) Exec(cmdArray []string) error {
 
 func (c *Container) Stop() error {
 	if c.Network != "" {
-		if err := c.handleNetwork(Delete); err != nil {
+		if err := c.HandleNetwork(Delete); err != nil {
 			// just need to record error logs if failed.
 			log.Debugf("failed to cleanup networks of container %s: %v",
 				c.Uuid, err)
@@ -338,32 +339,38 @@ func (c *Container) Delete() error {
 		}
 	}
 
-	if c.Network != "" {
-		if err := network.Init(); err != nil {
-			return err
-		}
+	c.CleanNetworkImage()
+	return deleteContainerRootfs(c)
+}
 
-		nw := network.Networks[c.Network]
-		ip := net.ParseIP(c.IPAddr)
-		if err := network.IPAllocator.Release(nw, &ip); err != nil {
-			log.Errorf("failed to release ipaddr of container %s: %v",
-				c.Uuid, err)
-		}
+func (c *Container) CleanNetworkImage() {
+	if err := network.Init(); err != nil {
+		return
+	}
 
-		ep := &network.Endpoint{Uuid: c.Uuid}
-		// delete the endpoint config file.
-		ep.Delete()
+	nw := network.Networks[c.Network]
+	ip := net.ParseIP(c.IPAddr)
+	if err := network.IPAllocator.Release(nw, &ip); err != nil {
+		log.Errorf("failed to release ipaddr of container %s: %v",
+			c.Uuid, err)
+	}
+
+	ep := &network.Endpoint{Uuid: c.Uuid}
+	// delete the endpoint config file.
+	if err := ep.Delete(); err != nil {
+		log.Errorf("failed to decrease counts of image %s: %v",
+			c.Image, err)
 	}
 
 	img, err := image.GetImageByNameOrUuid(c.Image)
 	if err != nil {
-		return err
+		log.Errorf("failed to get image %s: %v", c.Image, err)
+		return
 	}
 	if err := image.ChangeCounts(img.RepoTag, "delete"); err != nil {
-		return err
+		log.Errorf("failed to decrease counts of image %s: %v",
+			c.Image, err)
 	}
-
-	return deleteContainerRootfs(c)
 }
 
 func (c *Container) Dump() error {
@@ -386,7 +393,7 @@ func (c *Container) Dump() error {
 	return nil
 }
 
-func (c *Container) handleNetwork(action string) error {
+func (c *Container) HandleNetwork(action string) error {
 	if c.Network == "" {
 		return nil
 	}
