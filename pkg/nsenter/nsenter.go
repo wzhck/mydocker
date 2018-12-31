@@ -1,29 +1,32 @@
 package nsenter
 
 /*
+#cgo CFLAGS: -Wall
+#define _GNU_SOURCE
 #include <errno.h>
 #include <sched.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
+#include <unistd.h>
 
 __attribute__((constructor)) void enter_namespace(void) {
 	char *container_pid;
 	container_pid = getenv("ContainerPid");
 	if (!container_pid) {
-		//fprintf(stdout, "missing container_pid!\n");
+		// fprintf(stdout, "missing container_pid!\n");
 		return;
 	}
-	//fprintf(stdout, "got container_pid: %s\n", container_pid);
+	// fprintf(stdout, "got container_pid: %s\n", container_pid);
 
 	char *container_cmd;
 	container_cmd = getenv("ContainerCmd");
 	if (!container_cmd) {
-		//fprintf(stdout, "missing container_cmd!\n");
+		// fprintf(stdout, "missing container_cmd!\n");
 		return;
 	}
-	//fprintf(stdout, "got container_cmd: <%s>\n", container_cmd);
+	// fprintf(stdout, "got container_cmd: <%s>\n", container_cmd);
 
 	int i;
 	char nspath[1024];
@@ -31,6 +34,8 @@ __attribute__((constructor)) void enter_namespace(void) {
 
 	for (i=0; i<5; i++) {
 		sprintf(nspath, "/proc/%s/ns/%s", container_pid, namespaces[i]);
+
+		// get the file descriptor of namespace.
 		int fd = open(nspath, O_RDONLY);
 
 		if (setns(fd, 0) == -1) {
@@ -39,6 +44,7 @@ __attribute__((constructor)) void enter_namespace(void) {
 		}
 		close(fd);
 	}
+
 	exit(system(container_cmd));
 }
 */

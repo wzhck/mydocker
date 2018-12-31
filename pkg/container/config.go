@@ -7,6 +7,7 @@ const (
 	MyDockerDir = "/var/lib/mydocker"
 	ConfigName  = "config.json"
 	LogName     = "container.log"
+	XinoTmpfs   = "/var/local/xino"
 )
 
 const (

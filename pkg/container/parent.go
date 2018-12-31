@@ -122,9 +122,31 @@ func createMergeLayer(c *Container) error {
 	return nil
 }
 
+func mountTmpfsForXino() error {
+	if util.DirIsMounted(XinoTmpfs) {
+		return nil
+	}
+
+	if exist, _ := util.FileOrDirExists(XinoTmpfs); !exist {
+		if err := os.MkdirAll(XinoTmpfs, 0777); err != nil {
+			return err
+		}
+	}
+
+	// aufs mount option xino=/path/to/.xino can't be xfs.
+	// ref: https://sourceforge.net/p/aufs/mailman/message/25083283/
+	cmd := exec.Command("mount", "-t", "tmpfs", "-o", "size=100M", "tmpfs", XinoTmpfs)
+	return cmd.Run()
+}
+
 func mountMergeLayer(c *Container) error {
-	dirs := "dirs=" + c.Rootfs.WriteDir + ":" + c.Rootfs.ReadOnlyDir
-	cmd := exec.Command("mount", "-t", "aufs", "-o", dirs, "none", c.Rootfs.MergeDir)
+	if err := mountTmpfsForXino(); err != nil {
+		return err
+	}
+
+	options := fmt.Sprintf("xino=%s/.xino,dirs=%s:%s",
+		XinoTmpfs, c.Rootfs.WriteDir, c.Rootfs.ReadOnlyDir)
+	cmd := exec.Command("mount", "-t", "aufs", "-o", options, "none", c.Rootfs.MergeDir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
@@ -143,7 +165,8 @@ func mountLocalVolumes(c *Container) error {
 			return fmt.Errorf("failed to mkdir container volume dir %s: %v", volume.Target, err)
 		}
 
-		cmd := exec.Command("mount", "-t", "aufs", "-o", "dirs="+volume.Source, "none", volume.Target)
+		options := fmt.Sprintf("xino=%s/.xino,dirs=%s", XinoTmpfs, volume.Source)
+		cmd := exec.Command("mount", "-t", "aufs", "-o", options, "none", volume.Target)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		if err := cmd.Run(); err != nil {
