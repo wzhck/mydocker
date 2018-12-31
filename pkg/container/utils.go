@@ -12,9 +12,10 @@ import (
 )
 
 func SendInitCommand(cmds []string, writePipe *os.File) {
-	msgStr := strings.Join(cmds, " ")
-	log.Debugf("runCommand sends user-defined command: %s", msgStr)
-	writePipe.WriteString(msgStr)
+	cmdsStr := strings.Join(cmds, "\u0000")
+	log.Debugf("runCommand sends user-defined command: %s",
+		strings.Replace(cmdsStr, "\u0000", " ", -1))
+	writePipe.WriteString(cmdsStr)
 	writePipe.Close()
 }
 

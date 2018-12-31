@@ -43,9 +43,11 @@ func readUserCommand() []string {
 		log.Errorf("failed to init read pipe: %v", err)
 		return nil
 	}
-	msgStr := string(msg)
-	log.Debugf("initCommand receives user-defined command: %s", msgStr)
-	return strings.Split(msgStr, " ")
+
+	cmdsStr := string(msg)
+	log.Debugf("initCommand receives user-defined command: %s",
+		strings.Replace(cmdsStr, "\u0000", " ", -1))
+	return strings.Split(cmdsStr, "\u0000")
 }
 
 func mountVFS() error {
