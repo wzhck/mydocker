@@ -97,7 +97,7 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 			envs = append(envs, &Env{
 				Key: envPeers[0],
 				// the value maybe containe the character =.
-				Value: strings.Join(envPeers[1:], ""),
+				Value: strings.Join(envPeers[1:], "="),
 			})
 		} else {
 			return nil, fmt.Errorf("the argument of -e should be '-e key=value'")
