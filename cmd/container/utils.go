@@ -5,6 +5,7 @@ import (
 	"github.com/urfave/cli"
 	"github.com/weikeit/mydocker/pkg/container"
 	"os"
+	"strings"
 	"text/tabwriter"
 )
 
@@ -15,9 +16,14 @@ func listContainers(_ *cli.Context) error {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 12, 1, 3, ' ', 0)
-	fmt.Fprintf(w, "CONTAINER ID\tNAME\tIMAGE\tSTATUS\tPID\tIP\tCOMMAND\tCREATED\n")
+	fmt.Fprintf(w, "CONTAINER ID\tNAME\tIMAGE\tSTATUS\tPID\tIP\tCOMMAND\tPORTS\tCREATED\n")
 	for _, c := range allContainers {
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%d\t%s\t%s\t%s\n",
+		var portsStr string
+		for _, port := range c.Ports {
+			portsStr += fmt.Sprintf("%s->%s, ", port.Out, port.In)
+		}
+		portsStr = strings.TrimRight(portsStr, ", ")
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%d\t%s\t%s\t%s\t%s\n",
 			c.Uuid,
 			c.Name,
 			c.Image,
@@ -25,6 +31,7 @@ func listContainers(_ *cli.Context) error {
 			c.Pid,
 			c.IPAddr,
 			c.Commands,
+			portsStr,
 			c.CreateTime)
 	}
 

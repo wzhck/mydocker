@@ -22,8 +22,8 @@ type Env struct {
 }
 
 type Port struct {
-	In  string `json:"In"`
 	Out string `json:"Out"`
+	In  string `json:"In"`
 }
 
 type Container struct {

@@ -108,11 +108,11 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 		portPeers := strings.Split(portArg, ":")
 		if len(portPeers) == 2 && portPeers[0] != "" && portPeers[1] != "" {
 			port := &Port{
-				In:  portPeers[0],
-				Out: portPeers[1],
+				Out: portPeers[0],
+				In:  portPeers[1],
 			}
 
-			for _, portStr := range []string{port.In, port.Out} {
+			for _, portStr := range []string{port.Out, port.In} {
 				if portNum, err := strconv.Atoi(portStr); err != nil {
 					return nil, fmt.Errorf("the port %s is not integer", portStr)
 				} else if portNum < 0 || portNum > 65535 {
@@ -121,15 +121,14 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 			}
 
 			if server, err := net.Listen("tcp", ":"+port.Out); err != nil {
-				return nil, fmt.Errorf("the host port %s is already in use",
-					port.Out)
+				return nil, fmt.Errorf("the host port %s is already in use", port.Out)
 			} else {
 				server.Close()
 			}
 
 			ports = append(ports, port)
 		} else {
-			return nil, fmt.Errorf("the argument of -p should be '-p in:out'")
+			return nil, fmt.Errorf("the argument of -p should be '-p out:in'")
 		}
 	}
 
@@ -401,7 +400,7 @@ func (c *Container) HandleNetwork(action string) error {
 	var portMaps []string
 	for _, port := range c.Ports {
 		portMaps = append(portMaps, fmt.Sprintf("%s:%s",
-			port.In, port.Out))
+			port.Out, port.In))
 	}
 
 	if err := network.Init(); err != nil {
