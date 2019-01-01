@@ -1,0 +1,91 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "vmaUVLsyu2kdFpZG4SidKmYkLUo=",
+			"path": "github.com/Pallinder/go-randomdata",
+			"revision": "97a2356fcab20708fb8ae46cbbf69a5bc9feca63",
+			"revisionTime": "2018-10-31T20:14:56Z"
+		},
+		{
+			"checksumSHA1": "lDSezwlOmPHHgHfoBjy0pb0PiWA=",
+			"path": "github.com/c2h5oh/datasize",
+			"revision": "4eba002a5eaea69cf8d235a388fc6b65ae68d2dd",
+			"revisionTime": "2017-12-27T19:17:56Z"
+		},
+		{
+			"checksumSHA1": "SEnjvwVyfuU2xBaOfXfwPD5MZqk=",
+			"path": "github.com/mattn/go-colorable",
+			"revision": "efa589957cd060542a26d2dd7832fd6a6c6c3ade",
+			"revisionTime": "2018-03-10T13:32:14Z"
+		},
+		{
+			"checksumSHA1": "GiVgQkx5acnq+JZtYiuHPlhHoso=",
+			"path": "github.com/mattn/go-isatty",
+			"revision": "3fb116b820352b7f0c281308a4d6250c22d94e27",
+			"revisionTime": "2018-08-30T10:17:45Z"
+		},
+		{
+			"checksumSHA1": "CIK3BBNX3nuUQCmNqTQydNfMNKI=",
+			"path": "github.com/mgutz/ansi",
+			"revision": "9520e82c474b0a04dd04f8a40959027271bab992",
+			"revisionTime": "2017-02-06T15:57:36Z"
+		},
+		{
+			"checksumSHA1": "3V2PegG5c8YcvcxdxTup76Mx0KU=",
+			"path": "github.com/sirupsen/logrus",
+			"revision": "6180652bb05834ae178c93911ddae14b689408b7",
+			"revisionTime": "2018-12-26T16:51:57Z"
+		},
+		{
+			"checksumSHA1": "KRlS8eQZGK1oYVCOkIvcMDXabxk=",
+			"path": "github.com/urfave/cli",
+			"revision": "b67dcf995b6a7b7f14fad5fcb7cc5441b05e814b",
+			"revisionTime": "2018-10-29T21:32:00Z"
+		},
+		{
+			"checksumSHA1": "87DirrnINMjjYoKk8NKjUABrK0M=",
+			"path": "github.com/vishvananda/netlink",
+			"revision": "332a6983d9d1e222ab7495c3ffa0509e378c463d",
+			"revisionTime": "2018-11-18T19:01:52Z"
+		},
+		{
+			"checksumSHA1": "gN+3sCS6AnKjNs95WxwywGC+wkA=",
+			"path": "github.com/vishvananda/netlink/nl",
+			"revision": "332a6983d9d1e222ab7495c3ffa0509e378c463d",
+			"revisionTime": "2018-11-18T19:01:52Z"
+		},
+		{
+			"checksumSHA1": "8Y8hkjXEkSXBzI/dIdJPXYlGu24=",
+			"path": "github.com/vishvananda/netns",
+			"revision": "13995c7128ccc8e51e9a6bd2b551020a27180abd",
+			"revisionTime": "2018-07-20T11:23:40Z"
+		},
+		{
+			"checksumSHA1": "L1vKtjhZ2Lej0kfsLaTUm7ps/Yg=",
+			"path": "github.com/x-cray/logrus-prefixed-formatter",
+			"revision": "bb2702d423886830dee131692131d35648c382e2",
+			"revisionTime": "2017-07-31T09:11:26Z"
+		},
+		{
+			"checksumSHA1": "BSPDVKviqHQaG2phOFN690zAKB8=",
+			"path": "golang.org/x/crypto/ssh/terminal",
+			"revision": "505ab145d0a99da450461ae2c1a9f6cd10d1f447",
+			"revisionTime": "2018-09-26T22:07:39Z"
+		},
+		{
+			"checksumSHA1": "vrkWRvoGTTdPR5GENAlS+Z7CL0s=",
+			"path": "golang.org/x/sys/unix",
+			"revision": "9a3f9b0469bbc6b8802087ae5c0af9f61502de01",
+			"revisionTime": "2018-12-28T13:18:00Z"
+		},
+		{
+			"checksumSHA1": "Y7nctMxT58lRM78VtElPerhcnEs=",
+			"path": "golang.org/x/sys/windows",
+			"revision": "9a3f9b0469bbc6b8802087ae5c0af9f61502de01",
+			"revisionTime": "2018-12-28T13:18:00Z"
+		}
+	],
+	"rootPath": "github.com/weikeit/mydocker"
+}
