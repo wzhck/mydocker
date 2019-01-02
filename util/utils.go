@@ -50,8 +50,8 @@ func EnSureFileExists(fileName string) error {
 }
 
 func DirIsMounted(dir string) bool {
-	_, err := exec.Command("sh", "-c", fmt.Sprintf("mount | grep -qw %s", dir)).Output()
-	return err == nil
+	args := fmt.Sprintf("mount | grep -qw %s", dir)
+	return exec.Command("bash", "-c", args).Run() == nil
 }
 
 func GetEnvsByPid(pid int) ([]string, error) {
@@ -70,11 +70,6 @@ func Uuid() (string, error) {
 	}
 	// remove the tailing newline.
 	return string(out[:len(out)-1]), nil
-}
-
-func PortUsed(port string) bool {
-	args := fmt.Sprintf("iptables-save | grep -e '--dport %s'", port)
-	return exec.Command("bash", "-c", args).Run() == nil
 }
 
 func GetHostIPs() ([]string, error) {

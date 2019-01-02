@@ -104,6 +104,11 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 		}
 	}
 
+	allContainers, err := GetAllContainers()
+	if err != nil {
+		return nil, err
+	}
+
 	var ports []*Port
 	for _, portArg := range ctx.StringSlice("publish") {
 		portPeers := strings.Split(portArg, ":")
@@ -127,8 +132,13 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 				server.Close()
 			}
 
-			if util.PortUsed(port.Out) {
-				return nil, fmt.Errorf("the host port %s is already in use", port.Out)
+			for _, c := range allContainers {
+				for _, p := range c.Ports {
+					if p.Out == port.Out {
+						return nil, fmt.Errorf("the host port %s is already in use",
+							port.Out)
+					}
+				}
 			}
 
 			ports = append(ports, port)
