@@ -42,7 +42,15 @@ var IPAllocator = &IPAM{
 	SubnetBitMap: &map[string]string{},
 }
 
+var kernelNetConfs = []string{
+	"net.ipv4.ip_forward=1",
+	"net.ipv4.conf.all.route_localnet=1",
+	"net.bridge.bridge-nf-call-iptables=0",
+}
+
 var iptablesRules = map[string]string{
-	"snat": "-t nat {action} POSTROUTING -s {subnet} ! -o {bridge} -j MASQUERADE",
-	"dnat": "-t nat {action} PREROUTING -p tcp -m tcp --dport {hostPort} -j DNAT --to-destination {containerIP}:{containerPort}",
+	"masq": "-t nat {action} POSTROUTING -s {subnet} ! -o {bridge} -j MASQUERADE",
+	"dnat": "-t nat {action} PREROUTING ! -s 127.0.0.1 ! -d 127.0.0.1 -p tcp -m tcp --dport {outPort} -j DNAT --to-destination {inIP}:{inPort}",
+	"host": "-t nat {action} OUTPUT -d {outIP} -p tcp -m tcp --dport {outPort} -j DNAT --to-destination {inIP}:{inPort}",
+	"snat": "-t nat {action} POSTROUTING -d {inIP} -p tcp -m tcp --dport {inPort} -j SNAT --to-source {outIP}",
 }

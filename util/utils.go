@@ -4,6 +4,7 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/exec"
 	"path"
@@ -69,4 +70,45 @@ func Uuid() (string, error) {
 	}
 	// remove the tailing newline.
 	return string(out[:len(out)-1]), nil
+}
+
+func PortUsed(port string) bool {
+	args := fmt.Sprintf("iptables-save | grep -e '--dport %s'", port)
+	return exec.Command("bash", "-c", args).Run() == nil
+}
+
+func GetHostIPs() ([]string, error) {
+	var ips []string
+
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, iface := range ifaces {
+		if iface.Name == "lo" {
+			continue
+		}
+
+		addrs, err := iface.Addrs()
+		if err != nil {
+			return nil, err
+		}
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+
+			if strings.Contains(ip.String(), ":") {
+				continue
+			}
+			ips = append(ips, ip.String())
+		}
+	}
+
+	return ips, nil
 }

@@ -31,7 +31,7 @@ func (bd *BridgeDriver) Create(nw *Network) error {
 }
 
 func (bd *BridgeDriver) Delete(nw *Network) error {
-	cmd := GetSnatIPTablesCmd("-D", nw.IPNet.String(), nw.Name)
+	cmd := GetMasqIPTablesCmd("-D", nw.IPNet.String(), nw.Name)
 	if _, err := cmd.Output(); err != nil {
 		return fmt.Errorf("failed to remove iptables: %v", err)
 	}
@@ -208,12 +208,12 @@ func setInterfaceUP(ifaceName string) error {
 func setSnatIPTables(bridgeName string, subnet *net.IPNet) error {
 	var cmd *exec.Cmd
 
-	cmd = GetSnatIPTablesCmd("-C", subnet.String(), bridgeName)
+	cmd = GetMasqIPTablesCmd("-C", subnet.String(), bridgeName)
 	if _, err := cmd.Output(); err == nil {
 		return nil
 	}
 
-	cmd = GetSnatIPTablesCmd("-A", subnet.String(), bridgeName)
+	cmd = GetMasqIPTablesCmd("-A", subnet.String(), bridgeName)
 	if _, err := cmd.Output(); err != nil {
 		return fmt.Errorf("failed to set iptables: %v", err)
 	}

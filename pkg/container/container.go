@@ -127,6 +127,10 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 				server.Close()
 			}
 
+			if util.PortUsed(port.Out) {
+				return nil, fmt.Errorf("the host port %s is already in use", port.Out)
+			}
+
 			ports = append(ports, port)
 		} else {
 			return nil, fmt.Errorf("the argument of -p should be '-p out:in'")

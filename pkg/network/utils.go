@@ -35,21 +35,42 @@ func GetIPFromSubnetByIndex(subnet *net.IPNet, index int) *net.IPNet {
 	}
 }
 
-func GetSnatIPTablesCmd(action, subnet, bridge string) *exec.Cmd {
+func GetMasqIPTablesCmd(action, subnet, bridge string) *exec.Cmd {
 	argsReplacer := strings.NewReplacer(
 		"{action}", action,
 		"{subnet}", subnet,
 		"{bridge}", bridge)
-	args := argsReplacer.Replace(iptablesRules["snat"])
+	args := argsReplacer.Replace(iptablesRules["masq"])
 	return exec.Command("iptables", strings.Split(args, " ")...)
 }
 
-func GetDnatIPTablesCmd(action, hostPort, containerIP, containerPort string) *exec.Cmd {
+func GetDnatIPTablesCmd(action, outPort, inIP, inPort string) *exec.Cmd {
 	argsReplacer := strings.NewReplacer(
 		"{action}", action,
-		"{hostPort}", hostPort,
-		"{containerIP}", containerIP,
-		"{containerPort}", containerPort)
+		"{outPort}", outPort,
+		"{inIP}", inIP,
+		"{inPort}", inPort)
 	args := argsReplacer.Replace(iptablesRules["dnat"])
+	return exec.Command("iptables", strings.Split(args, " ")...)
+}
+
+func GetHostIPTablesCmd(action, outIP, outPort, inIP, inPort string) *exec.Cmd {
+	argsReplacer := strings.NewReplacer(
+		"{action}", action,
+		"{outIP}", outIP,
+		"{outPort}", outPort,
+		"{inIP}", inIP,
+		"{inPort}", inPort)
+	args := argsReplacer.Replace(iptablesRules["host"])
+	return exec.Command("iptables", strings.Split(args, " ")...)
+}
+
+func GetSnatIPTablesCmd(action, outIP, inIP, inPort string) *exec.Cmd {
+	argsReplacer := strings.NewReplacer(
+		"{action}", action,
+		"{outIP}", outIP,
+		"{inIP}", inIP,
+		"{inPort}", inPort)
+	args := argsReplacer.Replace(iptablesRules["snat"])
 	return exec.Command("iptables", strings.Split(args, " ")...)
 }

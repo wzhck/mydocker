@@ -7,7 +7,6 @@ import (
 	"github.com/weikeit/mydocker/util"
 	"net"
 	"os"
-	"os/exec"
 	"path"
 	"strings"
 )
@@ -30,7 +29,7 @@ func (ep *Endpoint) Delete() error {
 	return os.Remove(configFileName)
 }
 
-func (ep *Endpoint) AddIPAddrAndRoute(pid int) error {
+func (ep *Endpoint) SetIPAddrAndRoute(pid int) error {
 	netnsFileName := fmt.Sprintf("/proc/%d/ns/net", pid)
 	netnsFile, err := os.OpenFile(netnsFileName, os.O_RDONLY, 0)
 	if err != nil {
@@ -147,38 +146,21 @@ func (ep *Endpoint) DelIPAddrAndRoute(pid int) error {
 	return nil
 }
 
-func (ep *Endpoint) AddPortMaps() error {
-	var cmd *exec.Cmd
-	ipaddr := ep.IPAddr.String()
-
+func (ep *Endpoint) HandlePortMaps(action string) error {
+	epIPAddr := ep.IPAddr.String()
 	for _, portMap := range ep.PortMaps {
 		port := strings.Split(portMap, ":")
-		cmd = GetDnatIPTablesCmd("-C", port[0], ipaddr, port[1])
-		if _, err := cmd.Output(); err == nil {
-			continue
+		var err error
+		switch action {
+		case "create":
+			err = setPortMap(port[0], epIPAddr, port[1])
+		case "delete":
+			err = delPortMap(port[0], epIPAddr, port[1])
+		default:
+			err = fmt.Errorf("unknown action %s", action)
 		}
-		cmd = GetDnatIPTablesCmd("-A", port[0], ipaddr, port[1])
-		if _, err := cmd.Output(); err != nil {
-			return fmt.Errorf("failed to set iptables: %v", err)
-		}
-	}
-
-	return nil
-}
-
-func (ep *Endpoint) DelPortMaps() error {
-	var cmd *exec.Cmd
-	ipaddr := ep.IPAddr.String()
-
-	for _, portMap := range ep.PortMaps {
-		port := strings.Split(portMap, ":")
-		cmd = GetDnatIPTablesCmd("-C", port[0], ipaddr, port[1])
-		if _, err := cmd.Output(); err != nil {
-			continue
-		}
-		cmd = GetDnatIPTablesCmd("-D", port[0], ipaddr, port[1])
-		if _, err := cmd.Output(); err != nil {
-			return fmt.Errorf("failed to del iptables: %v", err)
+		if err != nil {
+			return err
 		}
 	}
 

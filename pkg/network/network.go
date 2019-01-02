@@ -76,10 +76,15 @@ func Init() error {
 	// https://github.com/moby/moby/pull/28257/files
 	// https://github.com/kubernetes/kubernetes/issues/40182
 	enableForwardCmd := exec.Command("iptables", "-P", "FORWARD", "ACCEPT")
-	if _, err := enableForwardCmd.Output(); err != nil {
-		log.Warnf("failed to execute `iptables -P FORWARD ACCEPT`! " +
-			"execute the command by yourself or the following one: " +
-			"echo 0 > /proc/sys/net/bridge/bridge-nf-call-iptables")
+	if err := enableForwardCmd.Run(); err != nil {
+		log.Warnf("failed to execute `iptables -P FORWARD ACCEPT`")
+	}
+
+	for _, netConf := range kernelNetConfs {
+		if err := exec.Command("sysctl", "-w", netConf).Run(); err != nil {
+			return fmt.Errorf("failed to set net configuration %s: %v",
+				netConf, err)
+		}
 	}
 
 	for driverName := range Drivers {
@@ -213,11 +218,11 @@ func (nw *Network) Connect(uuid string, pid int, ipaddr string, portMaps []strin
 		return fmt.Errorf("failed to init veth peers for container %s: %v", uuid, err)
 	}
 
-	if err := ep.AddIPAddrAndRoute(pid); err != nil {
+	if err := ep.SetIPAddrAndRoute(pid); err != nil {
 		return fmt.Errorf("failed to config ipaddr and route for container %s: %v", uuid, err)
 	}
 
-	if err := ep.AddPortMaps(); err != nil {
+	if err := ep.HandlePortMaps("create"); err != nil {
 		return fmt.Errorf("failed to config port maps for container %s: %v", uuid, err)
 	}
 
@@ -230,7 +235,7 @@ func (nw *Network) DisConnect(uuid string, pid int) error {
 		return fmt.Errorf("failed to parse endpoint of container %s: %v", uuid, err)
 	}
 
-	if err := ep.DelPortMaps(); err != nil {
+	if err := ep.HandlePortMaps("delete"); err != nil {
 		return fmt.Errorf("failed to delete port maps for container %s: %v", uuid, err)
 	}
 
