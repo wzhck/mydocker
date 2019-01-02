@@ -9,7 +9,7 @@ import (
 )
 
 func listNetworks(_ *cli.Context) error {
-	w := tabwriter.NewWriter(os.Stdout, 12, 1, 3, ' ', 0)
+	w := tabwriter.NewWriter(os.Stdout, 8, 1, 3, ' ', 0)
 	fmt.Fprint(w, "NAME\tIPNETS\tGATEWAY\tCOUNTS\tDRIVER\tCREATED\n")
 	for _, nw := range network.Networks {
 		fmt.Fprintf(w, "%s\t%s\t%s\t%d\t%s\t%s\n",

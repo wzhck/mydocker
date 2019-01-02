@@ -48,7 +48,7 @@ func list(_ *cli.Context) error {
 		return err
 	}
 
-	w := tabwriter.NewWriter(os.Stdout, 12, 1, 3, ' ', 0)
+	w := tabwriter.NewWriter(os.Stdout, 8, 1, 3, ' ', 0)
 	fmt.Fprint(w, "IMAGE ID\tREPO\tTAG\tCOUNTS\tCREATED\tSIZE\n")
 	for _, img := range image.Images {
 		repoTags := strings.Split(img.RepoTag, ":")

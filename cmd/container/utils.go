@@ -15,7 +15,7 @@ func listContainers(_ *cli.Context) error {
 		return err
 	}
 
-	w := tabwriter.NewWriter(os.Stdout, 12, 1, 3, ' ', 0)
+	w := tabwriter.NewWriter(os.Stdout, 8, 1, 3, ' ', 0)
 	fmt.Fprintf(w, "CONTAINER ID\tNAME\tIMAGE\tSTATUS\tPID\tIP\tCOMMAND\tPORTS\tCREATED\n")
 	for _, c := range allContainers {
 		var portsStr string
