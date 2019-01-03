@@ -16,18 +16,19 @@ func listContainers(_ *cli.Context) error {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 8, 1, 3, ' ', 0)
-	fmt.Fprintf(w, "CONTAINER ID\tNAME\tIMAGE\tSTATUS\tPID\tIP\tCOMMAND\tPORTS\tCREATED\n")
+	fmt.Fprintf(w, "CONTAINER ID\tNAME\tIMAGE\tSTATUS\tDRIVER\tPID\tIP\tCOMMAND\tPORTS\tCREATED\n")
 	for _, c := range allContainers {
 		var portsStr string
 		for _, port := range c.Ports {
 			portsStr += fmt.Sprintf("%s->%s, ", port.Out, port.In)
 		}
 		portsStr = strings.TrimRight(portsStr, ", ")
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%d\t%s\t%s\t%s\t%s\n",
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%d\t%s\t%s\t%s\t%s\n",
 			c.Uuid,
 			c.Name,
 			c.Image,
 			c.Status,
+			c.StorageDriver,
 			c.Pid,
 			c.IPAddr,
 			c.Commands,

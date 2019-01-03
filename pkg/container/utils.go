@@ -42,7 +42,7 @@ func GetContainer(uuid string) (*Container, error) {
 func GetAllContainers() ([]*Container, error) {
 	exist, _ := util.FileOrDirExists(ContainersDir)
 	if ! exist {
-		if err := os.MkdirAll(ContainersDir, 0777); err != nil {
+		if err := os.MkdirAll(ContainersDir, 0755); err != nil {
 			return nil, fmt.Errorf("failed to mkdir %s: %v", ContainersDir, err)
 		}
 		return nil, nil

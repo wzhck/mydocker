@@ -4,9 +4,9 @@ import (
 	"github.com/weikeit/mydocker/pkg/cgroups/subsystems"
 )
 
-type AufsStorage struct {
+type Rootfs struct {
 	ContainerDir string `json:"ContainerDir"`
-	ReadOnlyDir  string `json:"ReadOnlyDir"`
+	ImageDir     string `json:"ImageDir"`
 	WriteDir     string `json:"WriteDir"`
 	MergeDir     string `json:"MergeDir"`
 }
@@ -27,23 +27,31 @@ type Port struct {
 }
 
 type Container struct {
-	Detach     bool         `json:"Detach"`
-	Uuid       string       `json:"Uuid"`
-	Name       string       `json:"Name"`
-	Dns        []string     `json:"Dns"`
-	Pid        int          `json:"Pid"`
-	Image      string       `json:"Image"`
-	CgroupPath string       `json:"CgroupPath"`
-	CreateTime string       `json:"CreateTime"`
-	Status     string       `json:"Status"`
-	Commands   []string     `json:"Commands"`
-	Rootfs     *AufsStorage `json:"Rootfs"`
-	Volumes    []*Volume    `json:"Volumes"`
-	Envs       []*Env       `json:"Envs"`
-	Network    string       `json:"Network"`
-	IPAddr     string       `json:"IPAddr"`
-	Ports      []*Port      `json:"Ports"`
+	Detach        bool      `json:"Detach"`
+	Uuid          string    `json:"Uuid"`
+	Name          string    `json:"Name"`
+	Dns           []string  `json:"Dns"`
+	Pid           int       `json:"Pid"`
+	Image         string    `json:"Image"`
+	CgroupPath    string    `json:"CgroupPath"`
+	CreateTime    string    `json:"CreateTime"`
+	Status        string    `json:"Status"`
+	StorageDriver string    `json:"StorageDriver"`
+	Rootfs        *Rootfs   `json:"Rootfs"`
+	Commands      []string  `json:"Commands"`
+	Volumes       []*Volume `json:"Volumes"`
+	Envs          []*Env    `json:"Envs"`
+	Network       string    `json:"Network"`
+	IPAddr        string    `json:"IPAddr"`
+	Ports         []*Port   `json:"Ports"`
 
 	// the resources limits.
 	Resources *subsystems.ResourceConfig `json:"Resources"`
+}
+
+type Driver interface {
+	Name() string
+	Module() string
+	MountRootfs(*Container) error
+	MountVolume(*Container) error
 }

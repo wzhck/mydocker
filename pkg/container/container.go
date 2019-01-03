@@ -17,6 +17,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"reflect"
 	"strconv"
 	"strings"
 	"syscall"
@@ -32,6 +33,10 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 		name = strings.ToLower(randomdata.SillyName())
 	}
 
+	if c, _ := GetContainerByNameOrUuid(name); c != nil {
+		return nil, fmt.Errorf("the container name %s already exist", name)
+	}
+
 	uuid, err := util.Uuid()
 	if err != nil {
 		return nil, err
@@ -41,10 +46,6 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 	uuid = uuid[24:]
 
 	dns := ctx.StringSlice("dns")
-
-	if c, _ := GetContainerByNameOrUuid(name); c != nil {
-		return nil, fmt.Errorf("the container name '%s' already exist", name)
-	}
 
 	imgNameOrUuid := ctx.String("image")
 	if imgNameOrUuid == "" {
@@ -70,11 +71,23 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 		return nil, fmt.Errorf("missing container commands")
 	}
 
-	rootfs := &AufsStorage{
+	storageDriver := ctx.String("storage-driver")
+	driverConfig, ok := DriverConfigs[storageDriver]
+	if !ok {
+		return nil, fmt.Errorf("storage driver only support: %s",
+			reflect.ValueOf(DriverConfigs).MapKeys())
+	}
+	if !util.ModuleIsLoaded(Drivers[storageDriver].Module()) {
+		return nil, fmt.Errorf("the module %s is NOT loaded! "+
+			"Note: aufs needs ubuntu release; overlay2 needs "+
+			"kernel-3.18+", Drivers[storageDriver].Module())
+	}
+
+	rootfs := &Rootfs{
 		ContainerDir: path.Join(ContainersDir, uuid),
-		ReadOnlyDir:  img.RootDir(),
-		WriteDir:     path.Join(WriteLayterDir, uuid),
-		MergeDir:     path.Join(ContainersDir, uuid, "mnt"),
+		ImageDir:     img.RootDir(),
+		WriteDir:     path.Join(ContainersDir, uuid, driverConfig["writeDir"]),
+		MergeDir:     path.Join(ContainersDir, uuid, driverConfig["mergeDir"]),
 	}
 
 	var volumes []*Volume
@@ -173,21 +186,22 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 	}
 
 	return &Container{
-		Detach:     detach,
-		Uuid:       uuid,
-		Name:       name,
-		Dns:        dns,
-		Image:      img.RepoTag,
-		Commands:   commands,
-		Rootfs:     rootfs,
-		Volumes:    volumes,
-		Envs:       envs,
-		Ports:      ports,
-		Network:    nwName,
-		IPAddr:     ipaddr,
-		Status:     Creating,
-		CgroupPath: Mydocker + "/" + uuid,
-		CreateTime: time.Now().Format("2006-01-02 15:04:05"),
+		Detach:        detach,
+		Uuid:          uuid,
+		Name:          name,
+		Dns:           dns,
+		Image:         img.RepoTag,
+		Commands:      commands,
+		Rootfs:        rootfs,
+		Volumes:       volumes,
+		Envs:          envs,
+		Ports:         ports,
+		Network:       nwName,
+		IPAddr:        ipaddr,
+		Status:        Creating,
+		CgroupPath:    MyDocker + "/" + uuid,
+		CreateTime:    time.Now().Format("2006-01-02 15:04:05"),
+		StorageDriver: storageDriver,
 		Resources: &subsystems.ResourceConfig{
 			MemoryLimit: ctx.String("memory"),
 			CpuPeriod:   ctx.String("cpu-period"),
@@ -199,7 +213,7 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 }
 
 func (c *Container) Run() error {
-	parentCmd, writePipe, err := NewParentProcess(c)
+	parentCmd, writePipe, err := c.NewParentProcess()
 	if err != nil {
 		return err
 	}
@@ -243,7 +257,7 @@ func (c *Container) Run() error {
 		parentCmd.Wait()
 		c.HandleNetwork(Delete)
 		c.CleanNetworkImage()
-		return deleteContainerRootfs(c)
+		return c.CleanupRootfs()
 	} else {
 		_, err := fmt.Fprintln(os.Stdout, c.Uuid)
 		return err
@@ -311,11 +325,7 @@ func (c *Container) Stop() error {
 		}
 	}
 
-	if err := umountLocalVolumes(c); err != nil {
-		return err
-	}
-
-	if err := umountMergeLayer(c); err != nil {
+	if err := c.UmountRootfsVolume(); err != nil {
 		return err
 	}
 
@@ -354,7 +364,7 @@ func (c *Container) Delete() error {
 	}
 
 	c.CleanNetworkImage()
-	return deleteContainerRootfs(c)
+	return c.CleanupRootfs()
 }
 
 func (c *Container) CleanNetworkImage() {
@@ -432,4 +442,22 @@ func (c *Container) HandleNetwork(action string) error {
 	default:
 		return fmt.Errorf("unknown action: %s", action)
 	}
+}
+
+func (c *Container) SetDNS() error {
+	var nameservers []string
+	for _, dns := range c.Dns {
+		nameservers = append(nameservers, fmt.Sprintf("nameserver %s", dns))
+	}
+	resolvContent := []byte(strings.Join(nameservers, "\n") + "\n")
+
+	resolvConf := path.Join(c.Rootfs.WriteDir, "etc", "resolv.conf")
+	if err := util.EnSureFileExists(resolvConf); err != nil {
+		return fmt.Errorf("failed to create %s in container: %v", resolvConf, err)
+	}
+	if err := ioutil.WriteFile(resolvConf, resolvContent, 0600); err != nil {
+		return fmt.Errorf("failed to write contents into %s: %v", resolvConf, err)
+	}
+
+	return nil
 }

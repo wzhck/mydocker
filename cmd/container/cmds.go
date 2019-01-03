@@ -25,7 +25,7 @@ var Run = cli.Command{
 			Usage: "Run the container in background",
 		},
 		cli.StringFlag{
-			Name:  "name",
+			Name:  "name,n",
 			Usage: "Assign a name to the container",
 		},
 		cli.StringSliceFlag{
@@ -34,8 +34,8 @@ var Run = cli.Command{
 			Usage: "Set DNS servers",
 		},
 		cli.StringFlag{
-			Name:  "image",
-			Usage: "The image to be used (alpine/busybox)",
+			Name:  "image,i",
+			Usage: "The image to be used (name or id)",
 		},
 		cli.StringFlag{
 			Name:  "memory,m",
@@ -59,20 +59,25 @@ var Run = cli.Command{
 			Usage: "CPUs in which to allow execution (0-3, 0,1)",
 		},
 		cli.StringSliceFlag{
-			Name:  "volume, v",
+			Name:  "volume,v",
 			Usage: "Bind a local directory/file, e.g. -v /src:/dst",
 		},
 		cli.StringSliceFlag{
-			Name:  "env, e",
+			Name:  "env,e",
 			Usage: "Set environment variables, e.g. -e key=value",
 		},
 		cli.StringFlag{
-			Name:  "network, n",
+			Name:  "network,net",
 			Usage: "Connect the container to a network",
 		},
 		cli.StringSliceFlag{
-			Name:  "publish, p",
+			Name:  "publish,p",
 			Usage: "Publish the container's port(s) to the host",
+		},
+		cli.StringFlag{
+			Name:  "storage-driver,s",
+			Value: "overlay2",
+			Usage: "Storage driver to be used",
 		},
 	},
 	Action: func(ctx *cli.Context) error {

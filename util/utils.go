@@ -54,11 +54,33 @@ func DirIsMounted(dir string) bool {
 	return exec.Command("bash", "-c", args).Run() == nil
 }
 
+func ModuleIsLoaded(module string) bool {
+	args := fmt.Sprintf("lsmod | grep -qw %s", module)
+	return exec.Command("bash", "-c", args).Run() == nil
+}
+
+func Umount(mntPoint string) error {
+	if exist, _ := FileOrDirExists(mntPoint); !exist {
+		return nil
+	} else if !DirIsMounted(mntPoint) {
+		return nil
+	}
+
+	log.Debugf("umounting the dir: %s", mntPoint)
+	cmd := exec.Command("umount", "-f", mntPoint)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to umount the dir %s: %v",
+			mntPoint, err)
+	}
+	return nil
+}
+
 func GetEnvsByPid(pid int) ([]string, error) {
 	envFile := fmt.Sprintf("/proc/%d/environ", pid)
 	envsBytes, err := ioutil.ReadFile(envFile)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read envfile %s: %v", envFile, err)
+		return nil, fmt.Errorf("failed to read envfile %s: %v",
+			envFile, err)
 	}
 	return strings.Split(string(envsBytes), "\u0000"), nil
 }
