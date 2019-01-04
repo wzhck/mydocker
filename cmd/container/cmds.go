@@ -100,12 +100,18 @@ var List = cli.Command{
 var Logs = cli.Command{
 	Name:  "logs",
 	Usage: "Show all the logs of a container",
+	Flags: []cli.Flag{
+		cli.BoolFlag{
+			Name:  "follow,f",
+			Usage: "Follow the log's output",
+		},
+	},
 	Action: func(ctx *cli.Context) error {
 		c, err := getContainerFromArg(ctx)
 		if err != nil {
 			return err
 		}
-		return c.Logs()
+		return c.Logs(ctx)
 	},
 }
 

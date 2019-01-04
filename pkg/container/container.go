@@ -264,8 +264,19 @@ func (c *Container) Run() error {
 	}
 }
 
-func (c *Container) Logs() error {
+func (c *Container) Logs(ctx *cli.Context) error {
 	logFileName := path.Join(c.Rootfs.ContainerDir, LogName)
+	if ctx.Bool("follow") {
+		// third-party go library:
+		// https://github.com/hpcloud/tail
+		// https://github.com/fsnotify/fsnotify
+		// but call tailf command is the easiest way :)
+		cmd := exec.Command("tailf", logFileName)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		return cmd.Run()
+	}
+
 	logFile, err := os.Open(logFileName)
 	defer logFile.Close()
 	if err != nil {
