@@ -47,7 +47,7 @@ func setPortMap(outPort, inIP, inPort string) error {
 		}
 	}
 
-	// -t nat -A POSTROUTING -d 10.20.30.2 -p tcp -m tcp --dport 80 \
+	// -t nat -A POSTROUTING -s 127.0.0.1 -d 10.20.30.2 -p tcp -m tcp --dport 80 \
 	//        -j SNAT --to-source 192.168.138.179
 	// here, we also need to add additional SNAT rule to let destination
 	// know how to correctly return it, we choose the first host ipaddr.
@@ -103,7 +103,7 @@ func delPortMap(outPort, inIP, inPort string) error {
 		}
 	}
 
-	// -t nat -D POSTROUTING -d 10.20.30.2 -p tcp -m tcp --dport 80 \
+	// -t nat -D POSTROUTING -s 127.0.0.1 -d 10.20.30.2 -p tcp -m tcp --dport 80 \
 	//        -j SNAT --to-source 192.168.138.179
 	cmd = GetSnatIPTablesCmd("-C", outIPs[0], inIP, inPort)
 	if err := cmd.Run(); err == nil {

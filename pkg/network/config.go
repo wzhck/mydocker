@@ -52,5 +52,5 @@ var iptablesRules = map[string]string{
 	"masq": "-t nat {action} POSTROUTING -s {subnet} ! -o {bridge} -j MASQUERADE",
 	"dnat": "-t nat {action} PREROUTING ! -s 127.0.0.1 ! -d 127.0.0.1 -p tcp -m tcp --dport {outPort} -j DNAT --to-destination {inIP}:{inPort}",
 	"host": "-t nat {action} OUTPUT -d {outIP} -p tcp -m tcp --dport {outPort} -j DNAT --to-destination {inIP}:{inPort}",
-	"snat": "-t nat {action} POSTROUTING -d {inIP} -p tcp -m tcp --dport {inPort} -j SNAT --to-source {outIP}",
+	"snat": "-t nat {action} POSTROUTING -s 127.0.0.1 -d {inIP} -p tcp -m tcp --dport {inPort} -j SNAT --to-source {outIP}",
 }
