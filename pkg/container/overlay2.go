@@ -24,7 +24,7 @@ func (overlay2 *Overlay2Driver) MountRootfs(c *Container) error {
 
 	options := fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s",
 		c.Rootfs.ImageDir, c.Rootfs.WriteDir, workdir)
-	cmd := exec.Command("mount", "-t", "overlay", "overlay", "-o", options, c.Rootfs.MergeDir)
+	cmd := exec.Command("mount", "-t", "overlay", "-o", options, "overlay", c.Rootfs.MergeDir)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to mount overlay2: %v", err)
 	}
@@ -46,7 +46,7 @@ func (overlay2 *Overlay2Driver) MountVolume(c *Container) error {
 
 		options := fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s",
 			lowerDir, volume.Source, workdir)
-		cmd := exec.Command("mount", "-t", "overlay", "overlay", "-o", options, volume.Target)
+		cmd := exec.Command("mount", "-t", "overlay", "-o", options, "overlay", volume.Target)
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("failed to mount local volume: %v", err)
 		}
