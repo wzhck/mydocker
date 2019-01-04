@@ -32,10 +32,15 @@ func Pull(imageName string) error {
 
 	var cmd *exec.Cmd
 
+	cmd = exec.Command("docker", "inspect", imageName)
+	imageExist := cmd.Run() == nil
+
 	cmd = exec.Command("docker", "pull", imageName)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stdout
-	if err := cmd.Run(); err != nil {
+	if !imageExist {
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+	}
+	if err := cmd.Run(); !imageExist && err != nil {
 		return fmt.Errorf("failed to pull image %s: %v",
 			imageName, err)
 	}
