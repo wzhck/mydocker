@@ -2,6 +2,7 @@ package container
 
 import (
 	"fmt"
+	"github.com/weikeit/mydocker/pkg/image"
 	"github.com/weikeit/mydocker/util"
 	"os"
 	"os/exec"
@@ -59,7 +60,12 @@ func (c *Container) NewParentProcess() (*exec.Cmd, *os.File, error) {
 	cmd.Dir = c.Rootfs.MergeDir
 	cmd.ExtraFiles = []*os.File{readPipe}
 
-	var envs []string
+	img, err := image.GetImageByNameOrUuid(c.Image)
+	if err != nil {
+		return nil, nil, err
+	}
+	envs := img.Envs
+
 	for _, env := range c.Envs {
 		envs = append(envs, fmt.Sprintf("%s=%s",
 			env.Key, env.Value))
