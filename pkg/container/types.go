@@ -51,7 +51,7 @@ type Container struct {
 
 type Driver interface {
 	Name() string
-	Module() string
+	Allowed() bool
 	MountRootfs(*Container) error
 	MountVolume(*Container) error
 }

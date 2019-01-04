@@ -77,10 +77,10 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 		return nil, fmt.Errorf("storage driver only support: %s",
 			reflect.ValueOf(DriverConfigs).MapKeys())
 	}
-	if !util.ModuleIsLoaded(Drivers[storageDriver].Module()) {
-		return nil, fmt.Errorf("the module %s is NOT loaded! "+
+	if !Drivers[storageDriver].Allowed() {
+		return nil, fmt.Errorf("the driver %s is NOT allowed! "+
 			"Note: aufs needs ubuntu release; overlay2 needs "+
-			"kernel-3.18+", Drivers[storageDriver].Module())
+			"kernel-3.18+", storageDriver)
 	}
 
 	rootfs := &Rootfs{

@@ -13,8 +13,8 @@ func (aufs *AufsDriver) Name() string {
 	return Aufs
 }
 
-func (aufs *AufsDriver) Module() string {
-	return Aufs
+func (aufs *AufsDriver) Allowed() bool {
+	return util.ModuleIsLoaded("aufs")
 }
 
 func (aufs *AufsDriver) MountRootfs(c *Container) error {

@@ -2,6 +2,7 @@ package container
 
 import (
 	"fmt"
+	"github.com/weikeit/mydocker/util"
 	"os"
 	"os/exec"
 	"path"
@@ -13,9 +14,9 @@ func (overlay2 *Overlay2Driver) Name() string {
 	return Overlay2
 }
 
-func (overlay2 *Overlay2Driver) Module() string {
+func (overlay2 *Overlay2Driver) Allowed() bool {
 	// Note: overlay2 module name is "overlay"
-	return "overlay"
+	return util.ModuleIsLoaded("overlay")
 }
 
 func (overlay2 *Overlay2Driver) MountRootfs(c *Container) error {
