@@ -246,7 +246,7 @@ func (c *Container) Run() error {
 
 	cm.Apply(parentCmd.Process.Pid)
 
-	if err := c.HandleNetwork(Create); err != nil {
+	if err := c.handleNetwork(Create); err != nil {
 		if err := image.ChangeCounts(c.Image, "delete"); err != nil {
 			log.Debugf("failed to recover image counts: %v", err)
 		}
@@ -255,9 +255,9 @@ func (c *Container) Run() error {
 
 	if !c.Detach {
 		parentCmd.Wait()
-		c.HandleNetwork(Delete)
-		c.CleanNetworkImage()
-		return c.CleanupRootfs()
+		c.handleNetwork(Delete)
+		c.cleanNetworkImage()
+		return c.cleanupRootfs()
 	} else {
 		_, err := fmt.Fprintln(os.Stdout, c.Uuid)
 		return err
@@ -271,7 +271,7 @@ func (c *Container) Logs(ctx *cli.Context) error {
 		// https://github.com/hpcloud/tail
 		// https://github.com/fsnotify/fsnotify
 		// but call tailf command is the easiest way :)
-		cmd := exec.Command("tailf", logFileName)
+		cmd := exec.Command("tail", "-f", logFileName)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		return cmd.Run()
@@ -318,7 +318,7 @@ func (c *Container) Exec(cmdArray []string) error {
 
 func (c *Container) Stop() error {
 	if c.Network != "" {
-		if err := c.HandleNetwork(Delete); err != nil {
+		if err := c.handleNetwork(Delete); err != nil {
 			// just need to record error logs if failed.
 			log.Debugf("failed to cleanup networks of container %s: %v",
 				c.Uuid, err)
@@ -336,7 +336,7 @@ func (c *Container) Stop() error {
 		}
 	}
 
-	if err := c.UmountRootfsVolume(); err != nil {
+	if err := c.umountRootfsVolume(); err != nil {
 		return err
 	}
 
@@ -374,11 +374,31 @@ func (c *Container) Delete() error {
 		}
 	}
 
-	c.CleanNetworkImage()
-	return c.CleanupRootfs()
+	c.cleanNetworkImage()
+	return c.cleanupRootfs()
 }
 
-func (c *Container) CleanNetworkImage() {
+func (c *Container) Dump() error {
+	containerBytes, err := json.Marshal(c)
+	if err != nil {
+		return fmt.Errorf("failed to encode container object using json: %v", err)
+	}
+
+	configFileName := path.Join(c.Rootfs.ContainerDir, ConfigName)
+	configFile, err := os.Create(configFileName)
+	defer configFile.Close()
+	if err != nil {
+		return fmt.Errorf("failed to create container config file: %v", err)
+	}
+
+	if err := ioutil.WriteFile(configFileName, containerBytes, 0644); err != nil {
+		return fmt.Errorf("failed to write container configs to file %s: %v",
+			configFileName, err)
+	}
+	return nil
+}
+
+func (c *Container) cleanNetworkImage() {
 	if err := network.Init(); err != nil {
 		return
 	}
@@ -408,27 +428,7 @@ func (c *Container) CleanNetworkImage() {
 	}
 }
 
-func (c *Container) Dump() error {
-	containerBytes, err := json.Marshal(c)
-	if err != nil {
-		return fmt.Errorf("failed to encode container object using json: %v", err)
-	}
-
-	configFileName := path.Join(c.Rootfs.ContainerDir, ConfigName)
-	configFile, err := os.Create(configFileName)
-	defer configFile.Close()
-	if err != nil {
-		return fmt.Errorf("failed to create container config file: %v", err)
-	}
-
-	if err := ioutil.WriteFile(configFileName, containerBytes, 0644); err != nil {
-		return fmt.Errorf("failed to write container configs to file %s: %v",
-			configFileName, err)
-	}
-	return nil
-}
-
-func (c *Container) HandleNetwork(action string) error {
+func (c *Container) handleNetwork(action string) error {
 	if c.Network == "" {
 		return nil
 	}
@@ -455,7 +455,7 @@ func (c *Container) HandleNetwork(action string) error {
 	}
 }
 
-func (c *Container) SetDNS() error {
+func (c *Container) setDNS() error {
 	var nameservers []string
 	for _, dns := range c.Dns {
 		nameservers = append(nameservers, fmt.Sprintf("nameserver %s", dns))

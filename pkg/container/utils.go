@@ -19,6 +19,20 @@ func SendInitCommand(cmds []string, writePipe *os.File) {
 	writePipe.Close()
 }
 
+func ReadInitCommand() []string {
+	pipe := os.NewFile(uintptr(3), "pipe")
+	msg, err := ioutil.ReadAll(pipe)
+	if err != nil {
+		log.Errorf("failed to init read pipe: %v", err)
+		return nil
+	}
+
+	cmdsStr := string(msg)
+	log.Debugf("initCommand receives user-defined command: %s",
+		strings.Replace(cmdsStr, "\u0000", " ", -1))
+	return strings.Split(cmdsStr, "\u0000")
+}
+
 func GetContainer(uuid string) (*Container, error) {
 	configFile := path.Join(ContainersDir, uuid, ConfigName)
 	_, err := os.Stat(configFile)

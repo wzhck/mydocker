@@ -2,6 +2,7 @@ package container
 
 import (
 	"github.com/weikeit/mydocker/pkg/cgroups/subsystems"
+	"os"
 )
 
 type Rootfs struct {
@@ -54,4 +55,22 @@ type Driver interface {
 	Allowed() bool
 	MountRootfs(*Container) error
 	MountVolume(*Container) error
+}
+
+type Device struct {
+	Type     rune        `json:"Type"`
+	Path     string      `json:"Path"`
+	Major    int64       `json:"Major"`
+	Minor    int64       `json:"Minor"`
+	FileMode os.FileMode `json:"FileMode"`
+	Uid      uint32      `json:"Uid"`
+	Gid      uint32      `json:"Gid"`
+}
+
+type Mount struct {
+	Source string `json:"Source"`
+	Target string `json:"Target"`
+	Fstype string `json:"Fstype"`
+	Flags  int    `json:"Flags"`
+	Data   string `json:"Data"`
 }
