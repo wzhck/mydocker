@@ -104,14 +104,28 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 	}
 
 	var envs []*Env
-	for _, envArg := range append(ctx.StringSlice("env"), img.Envs...) {
+	for _, envArg := range img.Envs {
 		envPeers := strings.Split(envArg, "=")
+		envs = append(envs, &Env{
+			Key:   envPeers[0],
+			Value: strings.Join(envPeers[1:], "="),
+		})
+	}
+	for _, envArg := range ctx.StringSlice("env") {
+		envPeers := strings.Split(envArg, "=")
+		// the value maybe containe the character =
 		if len(envPeers) >= 2 && envPeers[0] != "" {
-			envs = append(envs, &Env{
-				Key: envPeers[0],
-				// the value maybe containe the character =.
+			newEnv := &Env{
+				Key:   envPeers[0],
 				Value: strings.Join(envPeers[1:], "="),
-			})
+			}
+			for idx, env := range envs {
+				if env.Key == newEnv.Key {
+					envs = append(envs[:idx], envs[idx+1:]...)
+					break
+				}
+			}
+			envs = append(envs, newEnv)
 		} else {
 			return nil, fmt.Errorf("the argument of -e should be '-e key=value'")
 		}
