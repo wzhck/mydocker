@@ -33,16 +33,16 @@ func (aufs *AufsDriver) MountRootfs(c *Container) error {
 }
 
 func (aufs *AufsDriver) MountVolume(c *Container) error {
-	for _, volume := range c.Volumes {
-		if err := os.MkdirAll(volume.Source, 0755); err != nil {
-			return fmt.Errorf("failed to mkdir %s: %v", volume.Source, err)
+	for source, target := range c.Volumes {
+		if err := os.MkdirAll(source, 0755); err != nil {
+			return fmt.Errorf("failed to mkdir %s: %v", source, err)
 		}
-		if err := os.MkdirAll(volume.Target, 0755); err != nil {
-			return fmt.Errorf("failed to mkdir container volume dir %s: %v", volume.Target, err)
+		if err := os.MkdirAll(target, 0755); err != nil {
+			return fmt.Errorf("failed to mkdir container volume dir %s: %v", target, err)
 		}
 
-		options := fmt.Sprintf("xino=%s/.xino,dirs=%s", XinoTmpfs, volume.Source)
-		cmd := exec.Command("mount", "-t", "aufs", "-o", options, "none", volume.Target)
+		options := fmt.Sprintf("xino=%s/.xino,dirs=%s", XinoTmpfs, source)
+		cmd := exec.Command("mount", "-t", "aufs", "-o", options, "none", target)
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("failed to mount local volume: %v", err)
 		}

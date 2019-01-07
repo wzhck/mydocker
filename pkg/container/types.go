@@ -2,6 +2,7 @@ package container
 
 import (
 	"github.com/weikeit/mydocker/pkg/cgroups/subsystems"
+	"github.com/weikeit/mydocker/pkg/network"
 	"os"
 )
 
@@ -12,39 +13,22 @@ type Rootfs struct {
 	MergeDir     string `json:"MergeDir"`
 }
 
-type Volume struct {
-	Source string `json:"Source"`
-	Target string `json:"Target"`
-}
-
-type Env struct {
-	Key   string `json:"Key"`
-	Value string `json:"Value"`
-}
-
-type Port struct {
-	Out string `json:"Out"`
-	In  string `json:"In"`
-}
-
 type Container struct {
-	Detach        bool      `json:"Detach"`
-	Uuid          string    `json:"Uuid"`
-	Name          string    `json:"Name"`
-	Dns           []string  `json:"Dns"`
-	Pid           int       `json:"Pid"`
-	Image         string    `json:"Image"`
-	CgroupPath    string    `json:"CgroupPath"`
-	CreateTime    string    `json:"CreateTime"`
-	Status        string    `json:"Status"`
-	StorageDriver string    `json:"StorageDriver"`
-	Rootfs        *Rootfs   `json:"Rootfs"`
-	Commands      []string  `json:"Commands"`
-	Volumes       []*Volume `json:"Volumes"`
-	Envs          []*Env    `json:"Envs"`
-	Network       string    `json:"Network"`
-	IPAddr        string    `json:"IPAddr"`
-	Ports         []*Port   `json:"Ports"`
+	Detach        bool                `json:"Detach"`
+	Uuid          string              `json:"Uuid"`
+	Name          string              `json:"Name"`
+	Dns           []string            `json:"Dns"`
+	Pid           int                 `json:"Pid"`
+	Image         string              `json:"Image"`
+	CgroupPath    string              `json:"CgroupPath"`
+	CreateTime    string              `json:"CreateTime"`
+	Status        string              `json:"Status"`
+	StorageDriver string              `json:"StorageDriver"`
+	Rootfs        *Rootfs             `json:"Rootfs"`
+	Commands      []string            `json:"Commands"`
+	Volumes       map[string]string   `json:"Volumes"`
+	Envs          map[string]string   `json:"Envs"`
+	Endpoints     []*network.Endpoint `json:"Endpoints"`
 
 	// the resources limits.
 	Resources *subsystems.ResourceConfig `json:"Resources"`

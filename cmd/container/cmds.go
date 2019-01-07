@@ -66,7 +66,7 @@ var Run = cli.Command{
 			Name:  "env,e",
 			Usage: "Set environment variables, e.g. -e key=value",
 		},
-		cli.StringFlag{
+		cli.StringSliceFlag{
 			Name:  "network,net",
 			Usage: "Connect the container to a network",
 		},

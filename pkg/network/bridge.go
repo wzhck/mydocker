@@ -4,7 +4,6 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
-	"github.com/weikeit/mydocker/util"
 	"net"
 	"os/exec"
 	"strings"
@@ -46,32 +45,7 @@ func (bd *BridgeDriver) Delete(nw *Network) error {
 	return netlink.LinkDel(br)
 }
 
-func (bd *BridgeDriver) Connect(nw *Network, ep *Endpoint) error {
-	if ep.Device == nil {
-		br, err := netlink.LinkByName(nw.Name)
-		if err != nil {
-			return err
-		}
-
-		uuid, err := util.Uuid()
-		if err != nil {
-			return err
-		}
-
-		// fetch the first 8 chars of standard uuid string.
-		uuid = uuid[:8]
-
-		la := netlink.NewLinkAttrs()
-		la.Name = "veth-" + uuid
-		// bind this veth onto the bridge
-		la.MasterIndex = br.Attrs().Index
-
-		ep.Device = &netlink.Veth{
-			LinkAttrs: la,
-			PeerName:  "cif-" + uuid,
-		}
-	}
-
+func (bd *BridgeDriver) Connect(ep *Endpoint) error {
 	// ip link add veth-<uuid> type veth peer name cif-<uuid>
 	// ip link set veth-<uuid> master ${bridgeName} or
 	// brctl addif ${bridgeName} veth-<uuid>
@@ -88,7 +62,7 @@ func (bd *BridgeDriver) Connect(nw *Network, ep *Endpoint) error {
 	return nil
 }
 
-func (bd *BridgeDriver) DisConnect(nw *Network, ep *Endpoint) error {
+func (bd *BridgeDriver) DisConnect(ep *Endpoint) error {
 	// ip link set veth-<uuid> down
 	if err := netlink.LinkSetDown(ep.Device); err != nil {
 		return fmt.Errorf("failed to set veth device %s down: %v",
@@ -197,7 +171,7 @@ func setInterfaceUP(ifaceName string) error {
 	}
 
 	// ip link set $ifaceName up
-	log.Debugf("set the bridge %s up", ifaceName)
+	log.Debugf("set the interface %s up", ifaceName)
 	if err = netlink.LinkSetUp(iface); err != nil {
 		return fmt.Errorf("failed to enable interface '%s': %v", ifaceName, err)
 	}

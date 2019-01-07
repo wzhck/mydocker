@@ -16,11 +16,11 @@ type Network struct {
 
 type Endpoint struct {
 	// same with the container's uuid
-	Uuid     string        `json:"Uuid"`
-	IPAddr   net.IP        `json:"IPAddr"`
-	Network  *Network      `json:"Network"`
-	Device   *netlink.Veth `json:"Device"`
-	PortMaps []string      `json:"PortMaps"`
+	Uuid    string            `json:"Uuid"`
+	IPAddr  net.IP            `json:"IPAddr"`
+	Network *Network          `json:"Network"`
+	Device  *netlink.Veth     `json:"Device"`
+	Ports   map[string]string `json:"Ports"`
 }
 
 type IPAM struct {
@@ -35,6 +35,6 @@ type Driver interface {
 	Init(nw *Network) error
 	Create(nw *Network) error
 	Delete(nw *Network) error
-	Connect(nw *Network, ep *Endpoint) error
-	DisConnect(nw *Network, ep *Endpoint) error
+	Connect(ep *Endpoint) error
+	DisConnect(ep *Endpoint) error
 }

@@ -7,29 +7,42 @@ import (
 	"github.com/weikeit/mydocker/util"
 	"net"
 	"os"
-	"path"
 	"strings"
 )
 
-func (ep *Endpoint) ConfigFileName() (string, error) {
-	if ep.Uuid == "" {
-		return "", fmt.Errorf("endpoint uuid is empty")
+func (ep *Endpoint) Connect(pid int) error {
+	if err := Drivers[ep.Network.Driver].Connect(ep); err != nil {
+		return fmt.Errorf("failed to init veth peers for container: %v", err)
 	}
-	return path.Join(EndpointDir, ep.Uuid+".json"), nil
+
+	if err := ep.addIPAddrAndRoute(pid); err != nil {
+		return fmt.Errorf("failed to config ipaddr and route for container: %v", err)
+	}
+
+	if err := ep.handlePortMaps("create"); err != nil {
+		return fmt.Errorf("failed to config port maps for container: %v", err)
+	}
+
+	return nil
 }
 
-func (ep *Endpoint) Delete() error {
-	configFileName, err := ep.ConfigFileName()
-	if err != nil {
-		return err
+func (ep *Endpoint) DisConnect(pid int) error {
+	if err := ep.handlePortMaps("delete"); err != nil {
+		return fmt.Errorf("failed to delete port maps for container: %v", err)
 	}
-	if err := util.EnSureFileExists(configFileName); err != nil {
-		return err
+
+	if err := ep.delIPAddrAndRoute(pid); err != nil {
+		return fmt.Errorf("failed to delete ipaddr and route for container: %v", err)
 	}
-	return os.Remove(configFileName)
+
+	if err := Drivers[ep.Network.Driver].DisConnect(ep); err != nil {
+		return fmt.Errorf("failed to delete veth peers for container: %v", err)
+	}
+
+	return nil
 }
 
-func (ep *Endpoint) SetIPAddrAndRoute(pid int) error {
+func (ep *Endpoint) addIPAddrAndRoute(pid int) error {
 	netnsFileName := fmt.Sprintf("/proc/%d/ns/net", pid)
 	netnsFile, err := os.OpenFile(netnsFileName, os.O_RDONLY, 0)
 	if err != nil {
@@ -90,13 +103,16 @@ func (ep *Endpoint) SetIPAddrAndRoute(pid int) error {
 
 	// [ip netns exec $netns] ip route add default [dev cif-<uuid>] via $gateway
 	if err := netlink.RouteAdd(defaultRoute); err != nil {
-		return fmt.Errorf("failed to set default route: %v", err)
+		if !strings.Contains(err.Error(), "file exists") {
+			// in case the default route has been added before.
+			return fmt.Errorf("failed to set default route: %v", err)
+		}
 	}
 
 	return nil
 }
 
-func (ep *Endpoint) DelIPAddrAndRoute(pid int) error {
+func (ep *Endpoint) delIPAddrAndRoute(pid int) error {
 	pidFile := fmt.Sprintf("/proc/%d", pid)
 	if exist, _ := util.FileOrDirExists(pidFile); !exist {
 		return fmt.Errorf("container (pid: %d) is not running", pid)
@@ -133,7 +149,10 @@ func (ep *Endpoint) DelIPAddrAndRoute(pid int) error {
 	}
 
 	if err := netlink.RouteDel(defaultRoute); err != nil {
-		return fmt.Errorf("failed to del default route: %v", err)
+		if !strings.Contains(err.Error(), "no such process") {
+			// in case the default route has been removed before.
+			return fmt.Errorf("failed to del default route: %v", err)
+		}
 	}
 
 	// move the veth out of container netns
@@ -146,16 +165,14 @@ func (ep *Endpoint) DelIPAddrAndRoute(pid int) error {
 	return nil
 }
 
-func (ep *Endpoint) HandlePortMaps(action string) error {
-	epIPAddr := ep.IPAddr.String()
-	for _, portMap := range ep.PortMaps {
-		port := strings.Split(portMap, ":")
-		var err error
+func (ep *Endpoint) handlePortMaps(action string) error {
+	var err error
+	for out, in := range ep.Ports {
 		switch action {
 		case "create":
-			err = setPortMap(port[0], epIPAddr, port[1])
+			err = setPortMap(out, ep.IPAddr.String(), in)
 		case "delete":
-			err = delPortMap(port[0], epIPAddr, port[1])
+			err = delPortMap(out, ep.IPAddr.String(), in)
 		default:
 			err = fmt.Errorf("unknown action %s", action)
 		}
@@ -167,60 +184,7 @@ func (ep *Endpoint) HandlePortMaps(action string) error {
 	return nil
 }
 
-func (ep *Endpoint) Dump() error {
-	configFileName, err := ep.ConfigFileName()
-	if err != nil {
-		return err
-	}
-	if err := util.EnSureFileExists(configFileName); err != nil {
-		return err
-	}
-
-	flags := os.O_WRONLY | os.O_TRUNC | os.O_CREATE
-	configFile, err := os.OpenFile(configFileName, int(flags), 0644)
-	defer configFile.Close()
-	if err != nil {
-		return err
-	}
-
-	jsonBytes, err := ep.marshal()
-	if err != nil {
-		return err
-	}
-
-	_, err = configFile.Write(jsonBytes)
-	return err
-}
-
-func (ep *Endpoint) Load() error {
-	configFileName, err := ep.ConfigFileName()
-	if err != nil {
-		return err
-	}
-	if err := util.EnSureFileExists(configFileName); err != nil {
-		return err
-	}
-
-	flags := os.O_RDONLY | os.O_CREATE
-	configFile, err := os.OpenFile(configFileName, int(flags), 0644)
-	defer configFile.Close()
-	if err != nil {
-		return err
-	}
-
-	jsonBytes := make([]byte, MaxBytes)
-	n, err := configFile.Read(jsonBytes)
-	if n == 0 {
-		return nil
-	}
-	if err != nil {
-		return err
-	}
-
-	return ep.unmarshal(jsonBytes[:n])
-}
-
-func (ep *Endpoint) marshal() ([]byte, error) {
+func (ep *Endpoint) MarshalJSON() ([]byte, error) {
 	type epAlias Endpoint
 	return json.Marshal(&struct {
 		IPAddr  string            `json:"IPAddr"`
@@ -238,7 +202,7 @@ func (ep *Endpoint) marshal() ([]byte, error) {
 	})
 }
 
-func (ep *Endpoint) unmarshal(data []byte) error {
+func (ep *Endpoint) UnmarshalJSON(data []byte) error {
 	type epAlias Endpoint
 	aux := &struct {
 		IPAddr  string            `json:"IPAddr"`
@@ -258,7 +222,8 @@ func (ep *Endpoint) unmarshal(data []byte) error {
 		Driver: aux.Network["driver"],
 	}
 	if err := nw.Load(); err != nil {
-		return fmt.Errorf("failed to load network: %v", err)
+		return fmt.Errorf("failed to load network %s: %v",
+			nw.Name, err)
 	}
 
 	ep.IPAddr = net.ParseIP(aux.IPAddr)

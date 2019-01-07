@@ -1,13 +1,11 @@
 package container
 
 import (
-	"encoding/json"
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/weikeit/mydocker/util"
 	"io/ioutil"
 	"os"
-	"path"
 	"strings"
 )
 
@@ -33,26 +31,6 @@ func ReadInitCommand() []string {
 	return strings.Split(cmdsStr, "\u0000")
 }
 
-func GetContainer(uuid string) (*Container, error) {
-	configFile := path.Join(ContainersDir, uuid, ConfigName)
-	_, err := os.Stat(configFile)
-	if os.IsNotExist(err) {
-		return nil, fmt.Errorf("the configFile %s doesn't exist: %v", configFile, err)
-	}
-
-	contents, err := ioutil.ReadFile(configFile)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read configFile %s: %v", configFile, err)
-	}
-
-	var c Container
-	if err := json.Unmarshal(contents, &c); err != nil {
-		return nil, err
-	}
-
-	return &c, nil
-}
-
 func GetAllContainers() ([]*Container, error) {
 	exist, _ := util.FileOrDirExists(ContainersDir)
 	if ! exist {
@@ -67,18 +45,18 @@ func GetAllContainers() ([]*Container, error) {
 		return nil, fmt.Errorf("failed to read dir %s: %v", ContainersDir, err)
 	}
 
-	var containerArray []*Container
+	var containers []*Container
 	for _, containerDir := range containerDirs {
 		uuid := containerDir.Name()
-		c, err := GetContainer(uuid)
-		if err != nil {
+		c := &Container{Uuid: uuid}
+		if c.Load(); err != nil {
 			log.Errorf("failed to get the info of container %s: %v", uuid, err)
 			continue
 		}
-		containerArray = append(containerArray, c)
+		containers = append(containers, c)
 	}
 
-	return containerArray, nil
+	return containers, nil
 }
 
 func GetContainerByNameOrUuid(identifier string) (*Container, error) {

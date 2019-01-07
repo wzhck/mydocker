@@ -16,13 +16,22 @@ func listContainers(_ *cli.Context) error {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 8, 1, 3, ' ', 0)
-	fmt.Fprintf(w, "CONTAINER ID\tNAME\tIMAGE\tSTATUS\tDRIVER\tPID\tIP\tCOMMAND\tPORTS\tCREATED\n")
+	fmt.Fprintf(w, "CONTAINER ID\tNAME\tIMAGE\tSTATUS\tDRIVER\tPID\tCOMMAND\tIPS\tPORTS\tCREATED\n")
 	for _, c := range allContainers {
-		var portsStr string
-		for _, port := range c.Ports {
-			portsStr += fmt.Sprintf("%s->%s, ", port.Out, port.In)
+		var ipaddrs, ports string
+
+		for _, ep := range c.Endpoints {
+			ipaddrs += fmt.Sprintf("%s, ", ep.IPAddr)
 		}
-		portsStr = strings.TrimRight(portsStr, ", ")
+
+		// the ports of all endpoints are the same.
+		for out, in := range c.Endpoints[0].Ports {
+			ports += fmt.Sprintf("%s->%s, ", out, in)
+		}
+
+		ipaddrs = strings.TrimRight(ipaddrs, ", ")
+		ports = strings.TrimRight(ports, ", ")
+
 		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%d\t%s\t%s\t%s\t%s\n",
 			c.Uuid,
 			c.Name,
@@ -30,9 +39,9 @@ func listContainers(_ *cli.Context) error {
 			c.Status,
 			c.StorageDriver,
 			c.Pid,
-			c.IPAddr,
 			c.Commands,
-			portsStr,
+			ipaddrs,
+			ports,
 			c.CreateTime)
 	}
 

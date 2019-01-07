@@ -1,6 +1,7 @@
 package util
 
 import (
+	"crypto/sha256"
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
@@ -85,13 +86,8 @@ func GetEnvsByPid(pid int) ([]string, error) {
 	return strings.Split(string(envsBytes), "\u0000"), nil
 }
 
-func Uuid() (string, error) {
-	out, err := exec.Command("uuidgen", "-r").Output()
-	if err != nil {
-		return "", fmt.Errorf("failed to generate uuid: %v", err)
-	}
-	// remove the tailing newline.
-	return string(out[:len(out)-1]), nil
+func Sha256Sum(s string) string {
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(s)))
 }
 
 func GetHostIPs() ([]string, error) {

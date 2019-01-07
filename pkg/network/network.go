@@ -131,7 +131,7 @@ func Init() error {
 			return err
 		}
 
-		defaultNW := &Network{
+		defaultNetwork := &Network{
 			Name:       DefaultNetwork,
 			Counts:     0,
 			Driver:     Bridge,
@@ -140,11 +140,11 @@ func Init() error {
 			CreateTime: time.Now().Format("2006-01-02 15:04:05"),
 		}
 
-		if err := defaultNW.Create(); err != nil {
+		if err := defaultNetwork.Create(); err != nil {
 			return err
 		}
 
-		Networks[DefaultNetwork] = defaultNW
+		Networks[DefaultNetwork] = defaultNetwork
 	}
 
 	return nil
@@ -194,62 +194,6 @@ func (nw *Network) Delete() error {
 	}
 }
 
-func (nw *Network) Connect(uuid string, pid int, ipaddr string, portMaps []string) error {
-	ep := &Endpoint{Uuid: uuid}
-	epConfigFileName, err := ep.ConfigFileName()
-	if err != nil {
-		return err
-	}
-
-	if exist, _ := util.FileOrDirExists(epConfigFileName); exist {
-		if err := ep.Load(); err != nil {
-			return err
-		}
-	} else {
-		ep = &Endpoint{
-			Uuid:     uuid,
-			IPAddr:   net.ParseIP(ipaddr),
-			PortMaps: portMaps,
-			Network:  nw,
-		}
-	}
-
-	if err := Drivers[nw.Driver].Connect(nw, ep); err != nil {
-		return fmt.Errorf("failed to init veth peers for container %s: %v", uuid, err)
-	}
-
-	if err := ep.SetIPAddrAndRoute(pid); err != nil {
-		return fmt.Errorf("failed to config ipaddr and route for container %s: %v", uuid, err)
-	}
-
-	if err := ep.HandlePortMaps("create"); err != nil {
-		return fmt.Errorf("failed to config port maps for container %s: %v", uuid, err)
-	}
-
-	return ep.Dump()
-}
-
-func (nw *Network) DisConnect(uuid string, pid int) error {
-	ep := &Endpoint{Uuid: uuid}
-	if err := ep.Load(); err != nil {
-		return fmt.Errorf("failed to parse endpoint of container %s: %v", uuid, err)
-	}
-
-	if err := ep.HandlePortMaps("delete"); err != nil {
-		return fmt.Errorf("failed to delete port maps for container %s: %v", uuid, err)
-	}
-
-	if err := ep.DelIPAddrAndRoute(pid); err != nil {
-		return fmt.Errorf("failed to delete ipaddr and route for container %s: %v", uuid, err)
-	}
-
-	if err := Drivers[nw.Driver].DisConnect(nw, ep); err != nil {
-		return fmt.Errorf("failed to delete veth peers for container %s: %v", uuid, err)
-	}
-
-	return nil
-}
-
 func (nw *Network) Dump() error {
 	configFileName, err := nw.ConfigFileName()
 	if err != nil {
@@ -263,7 +207,7 @@ func (nw *Network) Dump() error {
 		return err
 	}
 
-	jsonBytes, err := nw.marshal()
+	jsonBytes, err := nw.MarshalJSON()
 	if err != nil {
 		return err
 	}
@@ -294,10 +238,10 @@ func (nw *Network) Load() error {
 		return err
 	}
 
-	return nw.unmarshal(jsonBytes[:n])
+	return nw.UnmarshalJSON(jsonBytes[:n])
 }
 
-func (nw *Network) marshal() ([]byte, error) {
+func (nw *Network) MarshalJSON() ([]byte, error) {
 	type nwAlias Network
 	return json.Marshal(&struct {
 		IPNet   string `json:"IPNet"`
@@ -310,7 +254,7 @@ func (nw *Network) marshal() ([]byte, error) {
 	})
 }
 
-func (nw *Network) unmarshal(data []byte) error {
+func (nw *Network) UnmarshalJSON(data []byte) error {
 	type nwAlias Network
 	aux := &struct {
 		IPNet   string `json:"IPNet"`

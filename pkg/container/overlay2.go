@@ -32,21 +32,21 @@ func (overlay2 *Overlay2Driver) MountRootfs(c *Container) error {
 }
 
 func (overlay2 *Overlay2Driver) MountVolume(c *Container) error {
-	for index, volume := range c.Volumes {
-		volumeDir := path.Join(c.Rootfs.ContainerDir, "volumes",
-			fmt.Sprintf("%03d", index+1))
+	for source, target := range c.Volumes {
+		hashed := util.Sha256Sum(source)
+		volumeDir := path.Join(c.Rootfs.ContainerDir, "volumes", hashed[:8])
 		lowerDir := path.Join(volumeDir, "lower")
 		workdir := path.Join(volumeDir, "work")
 
-		for _, dir := range []string{lowerDir, workdir, volume.Source, volume.Target} {
+		for _, dir := range []string{lowerDir, workdir, source, target} {
 			if err := os.MkdirAll(dir, 0755); err != nil {
 				return fmt.Errorf("failed to mkdir %s: %v", dir, err)
 			}
 		}
 
 		options := fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s",
-			lowerDir, volume.Source, workdir)
-		cmd := exec.Command("mount", "-t", "overlay", "-o", options, "overlay", volume.Target)
+			lowerDir, source, workdir)
+		cmd := exec.Command("mount", "-t", "overlay", "-o", options, "overlay", target)
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("failed to mount local volume: %v", err)
 		}

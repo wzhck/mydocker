@@ -65,8 +65,8 @@ func (c *Container) mountRootfsVolume() error {
 }
 
 func (c *Container) umountRootfsVolume() error {
-	for _, volume := range c.Volumes {
-		if err := util.Umount(volume.Target); err != nil {
+	for _, target := range c.Volumes {
+		if err := util.Umount(target); err != nil {
 			return err
 		}
 	}

@@ -64,11 +64,10 @@ func (c *Container) NewParentProcess() (*exec.Cmd, *os.File, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	envs := img.Envs
 
-	for _, env := range c.Envs {
-		envs = append(envs, fmt.Sprintf("%s=%s",
-			env.Key, env.Value))
+	envs := img.Envs
+	for key, value := range c.Envs {
+		envs = append(envs, fmt.Sprintf("%s=%s", key, value))
 	}
 	cmd.Env = append(os.Environ(), envs...)
 

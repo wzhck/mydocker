@@ -22,7 +22,6 @@ const (
 var (
 	NetworksDir      = path.Join(MyDockerDir, "networks")
 	DriversDir       = path.Join(NetworksDir, "drivers")
-	EndpointDir      = path.Join(NetworksDir, "endpoints")
 	IPAMDir          = path.Join(NetworksDir, "ipam")
 	DefaultAllocator = path.Join(IPAMDir, "subnets.json")
 )
