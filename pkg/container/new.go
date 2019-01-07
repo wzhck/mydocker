@@ -128,7 +128,7 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 
 			for _, c := range allContainers {
 				for _, ep := range c.Endpoints {
-					if _, ok := ep.Ports[string(outPort)]; ok {
+					if _, ok := ep.Ports[strconv.Itoa(outPort)]; ok {
 						return nil, fmt.Errorf("the host port %d is already in use", outPort)
 					}
 				}
