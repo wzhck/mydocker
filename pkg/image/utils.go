@@ -88,7 +88,7 @@ func Pull(imageName string) error {
 	}
 
 	// same image maybe have multiple repotags.
-	for _, repoTag := range tags {
+	for idx, repoTag := range tags {
 		img := &Image{
 			// fetch the first 12 chars of sha256 checksum of image.
 			Uuid:       outs[0][7:19],
@@ -102,10 +102,14 @@ func Pull(imageName string) error {
 			Envs:       envs,
 		}
 
-		if err := img.MakeRootfs(); err != nil {
-			return fmt.Errorf("failed to make rootfs for image %s: %v",
-				imageName, err)
+		if idx == 0 {
+			// call MakeRootfs only once for images with same uuid.
+			if err := img.MakeRootfs(); err != nil {
+				return fmt.Errorf("failed to make rootfs for image %s: %v",
+					imageName, err)
+			}
 		}
+
 		Images = append(Images, img)
 	}
 
@@ -113,25 +117,22 @@ func Pull(imageName string) error {
 }
 
 func Delete(identifier string) error {
-	if err := Load(); err != nil {
-		return err
-	}
-
-	img, err := GetImageByNameOrUuid(identifier)
+	thisImg, err := GetImageByNameOrUuid(identifier)
 	if err != nil {
 		return err
 	}
 
-	if img.Counts > 0 {
+	if thisImg.Counts > 0 {
 		return fmt.Errorf("there still exist %d containers using the image %s",
-			img.Counts, img.RepoTag)
+			thisImg.Counts, thisImg.RepoTag)
 	}
 
-	for idx, tmpImg := range Images {
-		// two images' uuid maybe the same.
-		if tmpImg.RepoTag == img.RepoTag {
-			Images = append(Images[:idx], Images[idx+1:]...)
-			break
+	// see: https://github.com/go101/go101/wiki/How-to-perfectly-clone-a-slice%3F
+	tmpImages := append(Images[:0:0], Images...)
+	Images = Images[:0]
+	for _, img := range tmpImages {
+		if img.Uuid != thisImg.Uuid {
+			Images = append(Images, img)
 		}
 	}
 
@@ -139,7 +140,7 @@ func Delete(identifier string) error {
 		return err
 	}
 
-	return os.RemoveAll(img.RootDir())
+	return os.RemoveAll(thisImg.RootDir())
 }
 
 func GetImageByNameOrUuid(identifier string) (*Image, error) {
@@ -152,13 +153,35 @@ func GetImageByNameOrUuid(identifier string) (*Image, error) {
 	}
 
 	for _, img := range Images {
-		if img.Uuid == identifier || img.RepoTag == identifier ||
-			img.RepoTag == identifier+":latest" {
+		if img.RepoTag == identifier ||
+			img.RepoTag == identifier+":latest" ||
+			img.Uuid == identifier {
 			return img, nil
 		}
 	}
 
 	return nil, fmt.Errorf("no such image: %s", identifier)
+}
+
+func ChangeCounts(identifier, action string) error {
+	thisImg, err := GetImageByNameOrUuid(identifier)
+	if err != nil {
+		return err
+	}
+
+	// change all images with same uuid.
+	for _, img := range Images {
+		if img.Uuid == thisImg.Uuid {
+			switch action {
+			case "create":
+				img.Counts++
+			case "delete":
+				img.Counts--
+			}
+		}
+	}
+
+	return Dump()
 }
 
 func Dump() error {
@@ -197,26 +220,6 @@ func Load() error {
 
 	if err := json.Unmarshal(jsonBytes, &Images); err != nil {
 		return fmt.Errorf("failed to json-decode images: %v", err)
-	}
-
-	return nil
-}
-
-func ChangeCounts(repoTag, action string) error {
-	if err := Load(); err != nil {
-		return err
-	}
-
-	for _, img := range Images {
-		if img.RepoTag == repoTag {
-			switch action {
-			case "create":
-				img.Counts++
-			case "delete":
-				img.Counts--
-			}
-			return Dump()
-		}
 	}
 
 	return nil

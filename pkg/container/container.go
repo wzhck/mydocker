@@ -242,12 +242,7 @@ func (c *Container) cleanNetworkImage() {
 		}
 	}
 
-	img, err := image.GetImageByNameOrUuid(c.Image)
-	if err != nil {
-		log.Errorf("failed to get image %s: %v", c.Image, err)
-		return
-	}
-	if err := image.ChangeCounts(img.RepoTag, "delete"); err != nil {
+	if err := image.ChangeCounts(c.Image, "delete"); err != nil {
 		log.Errorf("failed to decrease counts of image %s: %v",
 			c.Image, err)
 	}

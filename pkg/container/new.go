@@ -195,7 +195,7 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 		Uuid:          uuid,
 		Name:          name,
 		Dns:           dns,
-		Image:         img.RepoTag,
+		Image:         imgNameOrUuid,
 		Commands:      commands,
 		Rootfs:        rootfs,
 		Volumes:       volumes,
