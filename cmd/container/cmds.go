@@ -68,7 +68,7 @@ var Run = cli.Command{
 		},
 		cli.StringSliceFlag{
 			Name:  "network,net",
-			Usage: "Connect the container to a network",
+			Usage: "Connect the container to a network (none to disable)",
 		},
 		cli.StringSliceFlag{
 			Name:  "publish,p",

@@ -20,17 +20,19 @@ func listContainers(_ *cli.Context) error {
 	for _, c := range allContainers {
 		var ipaddrs, ports string
 
-		for _, ep := range c.Endpoints {
-			ipaddrs += fmt.Sprintf("%s, ", ep.IPAddr)
-		}
+		if len(c.Endpoints) > 0 {
+			for _, ep := range c.Endpoints {
+				ipaddrs += fmt.Sprintf("%s, ", ep.IPAddr)
+			}
 
-		// the ports of all endpoints are the same.
-		for out, in := range c.Endpoints[0].Ports {
-			ports += fmt.Sprintf("%s->%s, ", out, in)
-		}
+			// the ports of all endpoints are the same.
+			for out, in := range c.Endpoints[0].Ports {
+				ports += fmt.Sprintf("%s->%s, ", out, in)
+			}
 
-		ipaddrs = strings.TrimRight(ipaddrs, ", ")
-		ports = strings.TrimRight(ports, ", ")
+			ipaddrs = strings.TrimRight(ipaddrs, ", ")
+			ports = strings.TrimRight(ports, ", ")
+		}
 
 		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%d\t%s\t%s\t%s\t%s\n",
 			c.Uuid,

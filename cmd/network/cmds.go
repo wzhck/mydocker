@@ -13,6 +13,8 @@ var Command = cli.Command{
 		Create,
 		Delete,
 		List,
+		Connect,
+		DisConnect,
 	},
 }
 
@@ -39,10 +41,6 @@ var Create = cli.Command{
 		},
 	},
 	Action: func(ctx *cli.Context) error {
-		if err := network.Init(); err != nil {
-			return err
-		}
-
 		nw, err := network.NewNetwork(ctx)
 		if err != nil {
 			return err
@@ -53,13 +51,10 @@ var Create = cli.Command{
 }
 
 var Delete = cli.Command{
-	Name:  network.Delete,
+	Name:  "delete",
 	Usage: "Delete one or more container networks",
 	Action: func(ctx *cli.Context) error {
-		if err := network.Init(); err != nil {
-			return err
-		}
-		return operateNetworks(ctx, network.Delete)
+		return operateNetworks(ctx, "delete")
 	},
 }
 
@@ -67,9 +62,22 @@ var List = cli.Command{
 	Name:  "list",
 	Usage: "List all container networks",
 	Action: func(ctx *cli.Context) error {
-		if err := network.Init(); err != nil {
-			return err
-		}
 		return listNetworks(ctx)
+	},
+}
+
+var Connect = cli.Command{
+	Name:  "connect",
+	Usage: "Connect a container to a network",
+	Action: func(ctx *cli.Context) error {
+		return handleConnection(ctx, "create")
+	},
+}
+
+var DisConnect = cli.Command{
+	Name:  "disconnect",
+	Usage: "Disconnect a container from a network",
+	Action: func(ctx *cli.Context) error {
+		return handleConnection(ctx, "delete")
 	},
 }

@@ -81,7 +81,8 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 	for _, volumeArg := range ctx.StringSlice("volume") {
 		volumePeers := strings.Split(volumeArg, ":")
 		if len(volumePeers) == 2 && volumePeers[0] != "" && volumePeers[1] != "" {
-			volumes[volumePeers[0]] = path.Join(rootfs.MergeDir, volumePeers[1])
+			source := strings.TrimRight(volumePeers[0], "/")
+			volumes[source] = path.Join(rootfs.MergeDir, volumePeers[1])
 		} else {
 			return nil, fmt.Errorf("the argument of -v should be '-v /src:/dst'")
 		}
@@ -99,12 +100,65 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 		}
 	}
 
-	allContainers, err := GetAllContainers()
+	nwNames := ctx.StringSlice("network")
+	if len(nwNames) == 0 {
+		nwNames = append(nwNames, network.DefaultNetwork)
+	}
+
+	ports, err := parsePortMaps(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	nwNames = util.Uniq(nwNames)
+	var endpoints []*network.Endpoint
+
+	// if context contains `--net none`
+	// don't allocate ip for container.
+	if !util.Contains(nwNames, "none") {
+		endpoints, err = CreateEndpoints(name, nwNames, ports)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if err := image.ChangeCounts(img.RepoTag, "create"); err != nil {
+		return nil, err
+	}
+
+	return &Container{
+		Detach:        detach,
+		Uuid:          uuid,
+		Name:          name,
+		Dns:           dns,
+		Image:         imgNameOrUuid,
+		Commands:      commands,
+		Rootfs:        rootfs,
+		Volumes:       volumes,
+		Envs:          envs,
+		Ports:         ports,
+		Endpoints:     endpoints,
+		Status:        Creating,
+		CgroupPath:    MyDocker + "/" + uuid,
+		CreateTime:    time.Now().Format("2006-01-02 15:04:05"),
+		StorageDriver: storageDriver,
+		Resources: &subsystems.ResourceConfig{
+			MemoryLimit: ctx.String("memory"),
+			CpuPeriod:   ctx.String("cpu-period"),
+			CpuQuota:    ctx.String("cpu-quota"),
+			CpuShare:    ctx.String("cpu-share"),
+			CpuSet:      ctx.String("cpuset"),
+		},
+	}, nil
+}
+
+func parsePortMaps(ctx *cli.Context) (map[string]string, error) {
 	ports := make(map[string]string)
+
+	allContainers, err := GetAllContainers()
+	if err != nil {
+		return nil, err
+	}
 	for _, portArg := range ctx.StringSlice("publish") {
 		portPeers := strings.Split(portArg, ":")
 		if len(portPeers) == 2 && portPeers[0] != "" && portPeers[1] != "" {
@@ -127,8 +181,8 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 			}
 
 			for _, c := range allContainers {
-				for _, ep := range c.Endpoints {
-					if _, ok := ep.Ports[strconv.Itoa(outPort)]; ok {
+				for out, _ := range c.Ports {
+					if out == strconv.Itoa(outPort) {
 						return nil, fmt.Errorf("the host port %d is already in use", outPort)
 					}
 				}
@@ -138,16 +192,15 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 		}
 	}
 
-	nwNames := ctx.StringSlice("network")
-	if len(nwNames) == 0 {
-		nwNames = append(nwNames, network.DefaultNetwork)
-	}
+	return ports, nil
+}
+
+func CreateEndpoints(cName string, nwNames []string, ports map[string]string) ([]*network.Endpoint, error) {
+	var endpoints []*network.Endpoint
 
 	if err := network.Init(); err != nil {
 		return nil, err
 	}
-
-	var endpoints []*network.Endpoint
 	for _, nwName := range nwNames {
 		nw, ok := network.Networks[nwName]
 		if !ok {
@@ -167,7 +220,7 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 		}
 
 		// the sha256sum has 64 decimal digits.
-		hashed := util.Sha256Sum(name + nwName)
+		hashed := util.Sha256Sum(nwName + "/" + cName)
 
 		la := netlink.NewLinkAttrs()
 		la.Name = "veth-" + hashed[:8]
@@ -186,31 +239,5 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 		})
 	}
 
-	if err := image.ChangeCounts(img.RepoTag, "create"); err != nil {
-		return nil, err
-	}
-
-	return &Container{
-		Detach:        detach,
-		Uuid:          uuid,
-		Name:          name,
-		Dns:           dns,
-		Image:         imgNameOrUuid,
-		Commands:      commands,
-		Rootfs:        rootfs,
-		Volumes:       volumes,
-		Envs:          envs,
-		Endpoints:     endpoints,
-		Status:        Creating,
-		CgroupPath:    MyDocker + "/" + uuid,
-		CreateTime:    time.Now().Format("2006-01-02 15:04:05"),
-		StorageDriver: storageDriver,
-		Resources: &subsystems.ResourceConfig{
-			MemoryLimit: ctx.String("memory"),
-			CpuPeriod:   ctx.String("cpu-period"),
-			CpuQuota:    ctx.String("cpu-quota"),
-			CpuShare:    ctx.String("cpu-share"),
-			CpuSet:      ctx.String("cpuset"),
-		},
-	}, nil
+	return endpoints, nil
 }

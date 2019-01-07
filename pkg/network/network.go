@@ -17,6 +17,10 @@ import (
 )
 
 func NewNetwork(ctx *cli.Context) (*Network, error) {
+	if err := Init(); err != nil {
+		return nil, err
+	}
+
 	if len(ctx.Args()) < 1 {
 		return nil, fmt.Errorf("missing network's name")
 	}

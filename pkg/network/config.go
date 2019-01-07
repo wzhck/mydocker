@@ -14,10 +14,6 @@ const (
 	Bridge = "bridge"
 )
 
-const (
-	Delete = "delete"
-)
-
 var (
 	NetworksDir      = path.Join(MyDockerDir, "networks")
 	DriversDir       = path.Join(NetworksDir, "drivers")

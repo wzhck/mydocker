@@ -28,6 +28,7 @@ type Container struct {
 	Commands      []string            `json:"Commands"`
 	Volumes       map[string]string   `json:"Volumes"`
 	Envs          map[string]string   `json:"Envs"`
+	Ports         map[string]string   `json:"Ports"`
 	Endpoints     []*network.Endpoint `json:"Endpoints"`
 
 	// the resources limits.

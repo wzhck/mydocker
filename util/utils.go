@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"sort"
 	"strings"
 )
 
@@ -124,4 +125,26 @@ func GetHostIPs() ([]string, error) {
 	}
 
 	return ips, nil
+}
+
+func Uniq(items []string) []string {
+	sort.Strings(items)
+	j := 0
+	for i := 0; i < len(items); i++ {
+		if items[j] == items[i] {
+			continue
+		}
+		j++
+		items[j] = items[i]
+	}
+	return items[:j+1]
+}
+
+func Contains(items []string, pivot string) bool {
+	for _, value := range items {
+		if value == pivot {
+			return true
+		}
+	}
+	return false
 }
