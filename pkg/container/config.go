@@ -11,7 +11,6 @@ const (
 	ConfigName  = "config.json"
 	LogName     = "container.log"
 	XinoTmpfs   = "/var/local/xino"
-	MaxBytes    = 10000
 )
 
 const (

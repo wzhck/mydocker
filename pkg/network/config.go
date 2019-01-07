@@ -8,7 +8,6 @@ const (
 	MyDockerDir    = "/var/lib/mydocker"
 	DefaultNetwork = "mydocker0"
 	DefaultCIDR    = "10.20.30.0/24"
-	MaxBytes       = 2000
 )
 
 const (

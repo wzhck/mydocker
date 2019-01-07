@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/c2h5oh/datasize"
 	"github.com/weikeit/mydocker/util"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"strconv"
@@ -165,20 +166,19 @@ func Dump() error {
 		return err
 	}
 
-	flags := os.O_WRONLY | os.O_TRUNC | os.O_CREATE
-	imagesConfigFile, err := os.OpenFile(ImagesConfigFile, int(flags), 0644)
-	defer imagesConfigFile.Close()
+	jsonBytes, err := json.Marshal(Images)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to json-encode images: %v", err)
 	}
 
-	imagesBytes, err := json.Marshal(Images)
-	if err != nil {
-		return fmt.Errorf("failed to encode images object using json: %v", err)
+	// WriteFile will create the file if it doesn't exist,
+	// otherwise WriteFile will truncate it before writing
+	if err := ioutil.WriteFile(ImagesConfigFile, jsonBytes, 0644); err != nil {
+		return fmt.Errorf("failed to write images configs to file %s: %v",
+			ImagesConfigFile, err)
 	}
 
-	_, err = imagesConfigFile.Write(imagesBytes)
-	return err
+	return nil
 }
 
 func Load() error {
@@ -186,23 +186,20 @@ func Load() error {
 		return err
 	}
 
-	flags := os.O_RDONLY | os.O_CREATE
-	configFile, err := os.OpenFile(ImagesConfigFile, int(flags), 0644)
-	defer configFile.Close()
-	if err != nil {
-		return err
-	}
-
-	jsonBytes := make([]byte, MaxBytes)
-	n, err := configFile.Read(jsonBytes)
-	if n == 0 {
+	jsonBytes, err := ioutil.ReadFile(ImagesConfigFile)
+	if len(jsonBytes) == 0 {
 		return nil
 	}
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read images configFile %s: %v",
+			ImagesConfigFile, err)
 	}
 
-	return json.Unmarshal(jsonBytes[:n], &Images)
+	if err := json.Unmarshal(jsonBytes, &Images); err != nil {
+		return fmt.Errorf("failed to json-decode images: %v", err)
+	}
+
+	return nil
 }
 
 func ChangeCounts(repoTag, action string) error {

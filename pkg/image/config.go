@@ -4,7 +4,6 @@ import "path"
 
 const (
 	MyDockerDir = "/var/lib/mydocker"
-	MaxBytes    = 10000
 )
 
 var (

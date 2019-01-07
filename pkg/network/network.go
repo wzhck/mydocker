@@ -6,6 +6,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"github.com/weikeit/mydocker/util"
+	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -200,20 +201,20 @@ func (nw *Network) Dump() error {
 		return err
 	}
 
-	flags := os.O_WRONLY | os.O_TRUNC | os.O_CREATE
-	configFile, err := os.OpenFile(configFileName, int(flags), 0644)
-	defer configFile.Close()
+	jsonBytes, err := json.Marshal(nw)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to json-encode network %s: %v",
+			nw.Name, err)
 	}
 
-	jsonBytes, err := nw.MarshalJSON()
-	if err != nil {
-		return err
+	// WriteFile will create the file if it doesn't exist,
+	// otherwise WriteFile will truncate it before writing
+	if err := ioutil.WriteFile(configFileName, jsonBytes, 0644); err != nil {
+		return fmt.Errorf("failed to write network config to file %s: %v",
+			configFileName, err)
 	}
 
-	_, err = configFile.Write(jsonBytes)
-	return err
+	return nil
 }
 
 func (nw *Network) Load() error {
@@ -222,23 +223,21 @@ func (nw *Network) Load() error {
 		return err
 	}
 
-	flags := os.O_RDONLY | os.O_CREATE
-	configFile, err := os.OpenFile(configFileName, int(flags), 0644)
-	defer configFile.Close()
-	if err != nil {
-		return err
-	}
-
-	jsonBytes := make([]byte, MaxBytes)
-	n, err := configFile.Read(jsonBytes)
-	if n == 0 {
+	jsonBytes, err := ioutil.ReadFile(configFileName)
+	if len(jsonBytes) == 0 {
 		return nil
 	}
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read configFile %s: %v",
+			configFileName, err)
 	}
 
-	return nw.UnmarshalJSON(jsonBytes[:n])
+	if err := json.Unmarshal(jsonBytes, &nw); err != nil {
+		return fmt.Errorf("failed to json-decode network %s: %v",
+			nw.Name, err)
+	}
+
+	return nil
 }
 
 func (nw *Network) MarshalJSON() ([]byte, error) {

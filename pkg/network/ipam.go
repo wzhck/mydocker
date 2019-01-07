@@ -5,8 +5,8 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/weikeit/mydocker/util"
+	"io/ioutil"
 	"net"
-	"os"
 	"strings"
 )
 
@@ -125,20 +125,19 @@ func (ipam *IPAM) Dump() error {
 		return err
 	}
 
-	flags := os.O_WRONLY | os.O_TRUNC | os.O_CREATE
-	configFile, err := os.OpenFile(ipam.Allocator, int(flags), 0644)
-	defer configFile.Close()
-	if err != nil {
-		return err
-	}
-
 	jsonBytes, err := json.Marshal(ipam.SubnetBitMap)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to json-encode ipam: %v", err)
 	}
 
-	_, err = configFile.Write(jsonBytes)
-	return err
+	// WriteFile will create the file if it doesn't exist,
+	// otherwise WriteFile will truncate it before writing
+	if err := ioutil.WriteFile(ipam.Allocator, jsonBytes, 0644); err != nil {
+		return fmt.Errorf("failed to write ipam config to file %s: %v",
+			ipam.Allocator, err)
+	}
+
+	return nil
 }
 
 func (ipam *IPAM) Load() error {
@@ -146,22 +145,19 @@ func (ipam *IPAM) Load() error {
 		return err
 	}
 
-	flags := os.O_RDONLY | os.O_CREATE
-	configFile, err := os.OpenFile(ipam.Allocator, int(flags), 0644)
-	defer configFile.Close()
-	if err != nil {
-		return err
-	}
-
-	jsonBytes := make([]byte, MaxBytes)
-	n, err := configFile.Read(jsonBytes)
-	if n == 0 {
+	jsonBytes, err := ioutil.ReadFile(ipam.Allocator)
+	if len(jsonBytes) == 0 {
 		return nil
 	}
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read configFile %s: %v",
+			ipam.Allocator, err)
 	}
 
 	ipam.SubnetBitMap = &map[string]string{}
-	return json.Unmarshal(jsonBytes[:n], ipam.SubnetBitMap)
+	if err := json.Unmarshal(jsonBytes, ipam.SubnetBitMap); err != nil {
+		return fmt.Errorf("failed to json-decode ipam: %v", err)
+	}
+
+	return nil
 }

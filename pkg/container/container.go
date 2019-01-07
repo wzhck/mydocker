@@ -185,43 +185,47 @@ func (c *Container) Delete() error {
 
 func (c *Container) Dump() error {
 	configFileName := path.Join(c.Rootfs.ContainerDir, ConfigName)
-
-	flags := os.O_WRONLY | os.O_TRUNC | os.O_CREATE
-	configFile, err := os.OpenFile(configFileName, int(flags), 0644)
-	defer configFile.Close()
-	if err != nil {
+	if err := util.EnSureFileExists(configFileName); err != nil {
 		return err
 	}
 
 	jsonBytes, err := json.Marshal(c)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to json-encode container %s: %v",
+			c.Uuid, err)
 	}
 
-	_, err = configFile.Write(jsonBytes)
-	return err
+	// WriteFile will create the file if it doesn't exist,
+	// otherwise WriteFile will truncate it before writing
+	if err := ioutil.WriteFile(configFileName, jsonBytes, 0644); err != nil {
+		return fmt.Errorf("failed to write container config to file %s: %v",
+			configFileName, err)
+	}
+
+	return nil
 }
 
 func (c *Container) Load() error {
 	configFileName := path.Join(ContainersDir, c.Uuid, ConfigName)
-
-	flags := os.O_RDONLY | os.O_CREATE
-	configFile, err := os.OpenFile(configFileName, int(flags), 0644)
-	defer configFile.Close()
-	if err != nil {
+	if err := util.EnSureFileExists(configFileName); err != nil {
 		return err
 	}
 
-	jsonBytes := make([]byte, MaxBytes)
-	n, err := configFile.Read(jsonBytes)
-	if n == 0 {
+	jsonBytes, err := ioutil.ReadFile(configFileName)
+	if len(jsonBytes) == 0 {
 		return nil
 	}
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read container config %s: %v",
+			configFileName, err)
 	}
 
-	return json.Unmarshal(jsonBytes[:n], c)
+	if err := json.Unmarshal(jsonBytes, &c); err != nil {
+		return fmt.Errorf("failed to json-decode container %s: %v",
+			c.Uuid, err)
+	}
+
+	return nil
 }
 
 func (c *Container) cleanNetworkImage() {
