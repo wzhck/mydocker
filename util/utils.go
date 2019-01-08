@@ -5,7 +5,6 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
-	"net"
 	"os"
 	"os/exec"
 	"path"
@@ -91,42 +90,6 @@ func Sha256Sum(s string) string {
 	return fmt.Sprintf("%x", sha256.Sum256([]byte(s)))
 }
 
-func GetHostIPs() ([]string, error) {
-	var ips []string
-
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		return nil, err
-	}
-
-	for _, iface := range ifaces {
-		if iface.Name == "lo" {
-			continue
-		}
-
-		addrs, err := iface.Addrs()
-		if err != nil {
-			return nil, err
-		}
-		for _, addr := range addrs {
-			var ip net.IP
-			switch v := addr.(type) {
-			case *net.IPNet:
-				ip = v.IP
-			case *net.IPAddr:
-				ip = v.IP
-			}
-
-			if strings.Contains(ip.String(), ":") {
-				continue
-			}
-			ips = append(ips, ip.String())
-		}
-	}
-
-	return ips, nil
-}
-
 func Uniq(items []string) []string {
 	sort.Strings(items)
 	j := 0
@@ -140,9 +103,9 @@ func Uniq(items []string) []string {
 	return items[:j+1]
 }
 
-func Contains(items []string, pivot string) bool {
+func Contains(items []string, ele string) bool {
 	for _, value := range items {
-		if value == pivot {
+		if value == ele {
 			return true
 		}
 	}

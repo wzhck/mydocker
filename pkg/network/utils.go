@@ -2,8 +2,12 @@ package network
 
 import (
 	"encoding/binary"
+	"fmt"
+	"github.com/weikeit/mydocker/util"
+	"io/ioutil"
 	"net"
-	"os/exec"
+	"os"
+	"path"
 	"strings"
 )
 
@@ -35,42 +39,71 @@ func GetIPFromSubnetByIndex(subnet *net.IPNet, index int) *net.IPNet {
 	}
 }
 
-func GetMasqIPTablesCmd(action, subnet, bridge string) *exec.Cmd {
-	argsReplacer := strings.NewReplacer(
-		"{action}", action,
-		"{subnet}", subnet,
-		"{bridge}", bridge)
-	args := argsReplacer.Replace(iptablesRules["masq"])
-	return exec.Command("iptables", strings.Split(args, " ")...)
+func GetPhysicalNics() ([]string, error) {
+	var physNics []string
+
+	nics, err := ioutil.ReadDir(SysClassNet)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, nic := range nics {
+		nicName := nic.Name()
+		nicPath := path.Join(SysClassNet, nicName)
+		dest, _ := os.Readlink(nicPath)
+		if !strings.Contains(dest, "/devices/virtual/net/") {
+			physNics = append(physNics, nicName)
+		}
+	}
+
+	if len(physNics) == 0 {
+		return nil, fmt.Errorf("no physical nics")
+	}
+
+	return physNics, nil
 }
 
-func GetDnatIPTablesCmd(action, outPort, inIP, inPort string) *exec.Cmd {
-	argsReplacer := strings.NewReplacer(
-		"{action}", action,
-		"{outPort}", outPort,
-		"{inIP}", inIP,
-		"{inPort}", inPort)
-	args := argsReplacer.Replace(iptablesRules["dnat"])
-	return exec.Command("iptables", strings.Split(args, " ")...)
-}
+func GetPhysicalIPs() ([]string, error) {
+	var physIPs []string
 
-func GetHostIPTablesCmd(action, outIP, outPort, inIP, inPort string) *exec.Cmd {
-	argsReplacer := strings.NewReplacer(
-		"{action}", action,
-		"{outIP}", outIP,
-		"{outPort}", outPort,
-		"{inIP}", inIP,
-		"{inPort}", inPort)
-	args := argsReplacer.Replace(iptablesRules["host"])
-	return exec.Command("iptables", strings.Split(args, " ")...)
-}
+	physNics, err := GetPhysicalNics()
+	if err != nil {
+		return nil, err
+	}
 
-func GetSnatIPTablesCmd(action, outIP, inIP, inPort string) *exec.Cmd {
-	argsReplacer := strings.NewReplacer(
-		"{action}", action,
-		"{outIP}", outIP,
-		"{inIP}", inIP,
-		"{inPort}", inPort)
-	args := argsReplacer.Replace(iptablesRules["snat"])
-	return exec.Command("iptables", strings.Split(args, " ")...)
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, iface := range ifaces {
+		if !util.Contains(physNics, iface.Name) {
+			continue
+		}
+
+		addrs, err := iface.Addrs()
+		if err != nil {
+			return nil, err
+		}
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+
+			if strings.Contains(ip.String(), ":") {
+				continue
+			}
+			physIPs = append(physIPs, ip.String())
+		}
+	}
+
+	if len(physIPs) == 0 {
+		return nil, fmt.Errorf("no physical ips")
+	}
+
+	return physIPs, nil
 }

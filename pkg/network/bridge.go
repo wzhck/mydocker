@@ -5,7 +5,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
 	"net"
-	"os/exec"
 	"strings"
 	"syscall"
 )
@@ -30,8 +29,7 @@ func (bd *BridgeDriver) Create(nw *Network) error {
 }
 
 func (bd *BridgeDriver) Delete(nw *Network) error {
-	cmd := GetMasqIPTablesCmd("-D", nw.IPNet.String(), nw.Name)
-	if _, err := cmd.Output(); err != nil {
+	if err := delBridgeIptablesRules(nw.Name, nw.IPNet); err != nil {
 		return fmt.Errorf("failed to remove iptables: %v", err)
 	}
 
@@ -87,19 +85,19 @@ func (bd *BridgeDriver) initBridge(nw *Network) error {
 
 	// step2: set ip addr and ip route of the bridge.
 	if err := setInterfaceIP(bridgeName, nw.Gateway); err != nil {
-		return fmt.Errorf("failed to set ip for the bridge '%s': %v",
+		return fmt.Errorf("failed to set ip for the bridge %s: %v",
 			bridgeName, err)
 	}
 
 	// step3: enable the new bridge.
 	if err := setInterfaceUP(bridgeName); err != nil {
-		return fmt.Errorf("failed to set the bridge '%s' up: %v",
+		return fmt.Errorf("failed to set the bridge %s up: %v",
 			bridgeName, err)
 	}
 
 	// step4: set iptables for the bridge.
-	if err := setSnatIPTables(bridgeName, nw.IPNet); err != nil {
-		return fmt.Errorf("failed to set iptables for bridge '%s': %v",
+	if err := setBridgeIptablesRules(bridgeName, nw.IPNet); err != nil {
+		return fmt.Errorf("failed to set iptables for bridge %s: %v",
 			bridgeName, err)
 	}
 
@@ -174,22 +172,6 @@ func setInterfaceUP(ifaceName string) error {
 	log.Debugf("set the interface %s up", ifaceName)
 	if err = netlink.LinkSetUp(iface); err != nil {
 		return fmt.Errorf("failed to enable interface '%s': %v", ifaceName, err)
-	}
-
-	return nil
-}
-
-func setSnatIPTables(bridgeName string, subnet *net.IPNet) error {
-	var cmd *exec.Cmd
-
-	cmd = GetMasqIPTablesCmd("-C", subnet.String(), bridgeName)
-	if _, err := cmd.Output(); err == nil {
-		return nil
-	}
-
-	cmd = GetMasqIPTablesCmd("-A", subnet.String(), bridgeName)
-	if _, err := cmd.Output(); err != nil {
-		return fmt.Errorf("failed to set iptables: %v", err)
 	}
 
 	return nil
