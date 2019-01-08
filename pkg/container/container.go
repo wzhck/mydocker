@@ -225,6 +225,12 @@ func (c *Container) Load() error {
 			c.Uuid, err)
 	}
 
+	processDir := fmt.Sprintf("/proc/%d", c.Pid)
+	if exist, _ := util.FileOrDirExists(processDir); !exist {
+		c.Status = Stopped
+		c.Pid = 0
+	}
+
 	return nil
 }
 
