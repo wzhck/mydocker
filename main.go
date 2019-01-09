@@ -3,6 +3,7 @@ package main
 import (
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
+	"github.com/weikeit/mydocker/cmd"
 	"github.com/weikeit/mydocker/cmd/container"
 	"github.com/weikeit/mydocker/cmd/image"
 	"github.com/weikeit/mydocker/cmd/network"
@@ -37,6 +38,7 @@ func main() {
 		container.Delete,
 		network.Command,
 		image.Command,
+		cmd.Inspect,
 	}
 
 	app.Flags = []cli.Flag{
