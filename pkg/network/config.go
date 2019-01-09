@@ -37,6 +37,15 @@ var IPAllocator = &IPAM{
 	SubnetBitMap: &map[string]string{},
 }
 
+var kernelNetConfs = map[string]string{
+	// enable iptables to forward packets between interfaces.
+	"net.ipv4.ip_forward": "1",
+	// consider loopback addresses as normal source or destination while routing.
+	"net.ipv4.conf.all.route_localnet": "1",
+	// enable iptables to hande bridged packets.
+	"net.bridge.bridge-nf-call-iptables": "1",
+}
+
 var bridgeIPTRules = map[string]string{
 	"masq": "-w 5 -t nat {action} POSTROUTING -s {subnet} ! -o {bridge} -j MASQUERADE",
 	"mark": "-w 5 -t mangle {action} PREROUTING -i {bridge} -j MARK --set-mark {mark}",

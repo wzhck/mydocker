@@ -7,13 +7,20 @@ import (
 	"github.com/weikeit/mydocker/cmd/container"
 	"github.com/weikeit/mydocker/cmd/image"
 	"github.com/weikeit/mydocker/cmd/network"
-	_ "github.com/weikeit/mydocker/pkg/init"
+	netpkg "github.com/weikeit/mydocker/pkg/network"
+	"github.com/x-cray/logrus-prefixed-formatter"
+	"math/rand"
 	"os"
+	"time"
 )
 
 const usage = `mydocker is a simple container runtime implementation.
 The purpose of this project is to learn how docker works and how to
 write a docker-like container runtime by ourselves, enjoy it!`
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
 
 func main() {
 	app := cli.NewApp()
@@ -51,6 +58,22 @@ func main() {
 		if ctx.Bool("debug") {
 			log.SetLevel(log.DebugLevel)
 		}
+
+		log.SetOutput(os.Stdout)
+		log.SetFormatter(&prefixed.TextFormatter{
+			ForceColors:     true,
+			ForceFormatting: true,
+			FullTimestamp:   true,
+			TimestampFormat: "2006-01-02 15:04:05",
+		})
+
+		// notes: command `mydocker init` is called by
+		// `mydocker run` implicitly. so, we can't use
+		// `import _ /path/to/init/pkg` to call init()
+		if ctx.Args().Get(0) != container.Init.Name {
+			return netpkg.Init()
+		}
+
 		return nil
 	}
 
