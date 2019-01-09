@@ -18,10 +18,6 @@ var Inspect = cli.Command{
 			return fmt.Errorf("missing object's name or uuid")
 		}
 
-		if err := network.Init(); err != nil {
-			return err
-		}
-
 		for _, arg := range ctx.Args() {
 			if c, err := container.GetContainerByNameOrUuid(arg); err == nil {
 				showUp(c, "container", arg)

@@ -181,7 +181,7 @@ func parsePortMaps(ctx *cli.Context) (map[string]string, error) {
 			}
 
 			for _, c := range allContainers {
-				for out, _ := range c.Ports {
+				for out := range c.Ports {
 					if out == strconv.Itoa(outPort) {
 						return nil, fmt.Errorf("the host port %d is already in use", outPort)
 					}
@@ -198,9 +198,6 @@ func parsePortMaps(ctx *cli.Context) (map[string]string, error) {
 func CreateEndpoints(cName string, nwNames []string, ports map[string]string) ([]*network.Endpoint, error) {
 	var endpoints []*network.Endpoint
 
-	if err := network.Init(); err != nil {
-		return nil, err
-	}
 	for _, nwName := range nwNames {
 		nw, ok := network.Networks[nwName]
 		if !ok {

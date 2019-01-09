@@ -10,10 +10,6 @@ import (
 )
 
 func listNetworks(_ *cli.Context) error {
-	if err := network.Init(); err != nil {
-		return err
-	}
-
 	w := tabwriter.NewWriter(os.Stdout, 8, 1, 3, ' ', 0)
 	fmt.Fprint(w, "NAME\tIPNETS\tGATEWAY\tCOUNTS\tDRIVER\tCREATED\n")
 	for _, nw := range network.Networks {
@@ -33,10 +29,6 @@ func listNetworks(_ *cli.Context) error {
 }
 
 func operateNetworks(ctx *cli.Context, action string) error {
-	if err := network.Init(); err != nil {
-		return err
-	}
-
 	if len(ctx.Args()) < 1 {
 		return fmt.Errorf("missing network's name")
 	}
@@ -65,10 +57,6 @@ func operateNetworks(ctx *cli.Context, action string) error {
 }
 
 func handleConnection(ctx *cli.Context, action string) error {
-	if err := network.Init(); err != nil {
-		return err
-	}
-
 	switch len(ctx.Args()) {
 	case 0:
 		return fmt.Errorf("missing network's name")

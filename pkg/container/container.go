@@ -240,10 +240,6 @@ func (c *Container) Load() error {
 }
 
 func (c *Container) cleanNetworkImage() {
-	if err := network.Init(); err != nil {
-		return
-	}
-
 	for _, ep := range c.Endpoints {
 		nw := ep.Network
 		ip := ep.IPAddr

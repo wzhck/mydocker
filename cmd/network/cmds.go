@@ -9,20 +9,11 @@ var Command = cli.Command{
 	Name:  "network",
 	Usage: "Manage container networks",
 	Subcommands: []cli.Command{
-		Init,
 		Create,
 		Remove,
 		List,
 		Connect,
 		DisConnect,
-	},
-}
-
-var Init = cli.Command{
-	Name:  "init",
-	Usage: "init all the existed networks",
-	Action: func(ctx *cli.Context) error {
-		return network.Init()
 	},
 }
 

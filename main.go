@@ -7,19 +7,13 @@ import (
 	"github.com/weikeit/mydocker/cmd/container"
 	"github.com/weikeit/mydocker/cmd/image"
 	"github.com/weikeit/mydocker/cmd/network"
-	"github.com/x-cray/logrus-prefixed-formatter"
-	"math/rand"
+	_ "github.com/weikeit/mydocker/pkg/init"
 	"os"
-	"time"
 )
 
 const usage = `mydocker is a simple container runtime implementation.
 The purpose of this project is to learn how docker works and how to
 write a docker-like container runtime by ourselves, enjoy it!`
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
 
 func main() {
 	app := cli.NewApp()
@@ -57,13 +51,6 @@ func main() {
 		if ctx.Bool("debug") {
 			log.SetLevel(log.DebugLevel)
 		}
-		log.SetFormatter(&prefixed.TextFormatter{
-			ForceColors:     true,
-			ForceFormatting: true,
-			FullTimestamp:   true,
-			TimestampFormat: "2006-01-02 15:04:05",
-		})
-		log.SetOutput(os.Stdout)
 		return nil
 	}
 

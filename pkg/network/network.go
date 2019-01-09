@@ -3,24 +3,16 @@ package network
 import (
 	"encoding/json"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"github.com/weikeit/mydocker/util"
 	"io/ioutil"
 	"net"
 	"os"
-	"os/exec"
 	"path"
-	"path/filepath"
-	"strings"
 	"time"
 )
 
 func NewNetwork(ctx *cli.Context) (*Network, error) {
-	if err := Init(); err != nil {
-		return nil, err
-	}
-
 	if len(ctx.Args()) < 1 {
 		return nil, fmt.Errorf("missing network's name")
 	}
@@ -73,86 +65,6 @@ func NewNetwork(ctx *cli.Context) (*Network, error) {
 
 	Networks[name] = nw
 	return nw, nil
-}
-
-func Init() error {
-	// need to reset the rule of iptables FORWARD chain to ACCEPT, because
-	// docker 1.13+ changed the default iptables forwarding policy to DROP
-	// https://github.com/moby/moby/pull/28257/files
-	// https://github.com/kubernetes/kubernetes/issues/40182
-	enableForwardCmd := exec.Command("iptables", "-P", "FORWARD", "ACCEPT")
-	if err := enableForwardCmd.Run(); err != nil {
-		log.Warnf("failed to execute `iptables -P FORWARD ACCEPT`")
-	}
-
-	for _, netConf := range kernelNetConfs {
-		if err := exec.Command("sysctl", "-w", netConf).Run(); err != nil {
-			return fmt.Errorf("failed to set net configuration %s: %v",
-				netConf, err)
-		}
-	}
-
-	for driverName := range Drivers {
-		log.Debugf("init networks of %s driver...", driverName)
-		driverDir := path.Join(DriversDir, driverName)
-		exist, err := util.FileOrDirExists(driverDir)
-		if err != nil {
-			return err
-		}
-		if !exist {
-			if err := os.MkdirAll(driverDir, 0755); err != nil {
-				return fmt.Errorf("failed to create the dir %s", driverDir)
-			}
-		}
-
-		if err := filepath.Walk(driverDir+"/",
-			func(nwPath string, info os.FileInfo, err error) error {
-				if strings.HasSuffix(nwPath, "/") {
-					return nil
-				}
-
-				_, nwConfigName := path.Split(nwPath)
-				nw := &Network{
-					Name:   strings.Split(nwConfigName, ".")[0],
-					Driver: driverName,
-				}
-
-				if err := nw.Load(); err != nil {
-					return fmt.Errorf("failed to load the network %s of driver %s: %v",
-						nw.Name, driverName, err)
-				}
-				log.Debugf("detect a %s network: %+v", driverName, nw)
-
-				Networks[nw.Name] = nw
-				return Drivers[driverName].Init(nw)
-			}); err != nil {
-			return err
-		}
-	}
-
-	if _, ok := Networks[DefaultNetwork]; !ok {
-		_, ipNet, err := net.ParseCIDR(DefaultCIDR)
-		if err != nil {
-			return err
-		}
-
-		defaultNetwork := &Network{
-			Name:       DefaultNetwork,
-			Counts:     0,
-			Driver:     Bridge,
-			IPNet:      ipNet,
-			Gateway:    GetIPFromSubnetByIndex(ipNet, 1),
-			CreateTime: time.Now().Format("2006-01-02 15:04:05"),
-		}
-
-		if err := defaultNetwork.Create(); err != nil {
-			return err
-		}
-
-		Networks[DefaultNetwork] = defaultNetwork
-	}
-
-	return nil
 }
 
 func (nw *Network) ConfigFileName() (string, error) {
