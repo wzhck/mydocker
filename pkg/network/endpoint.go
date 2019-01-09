@@ -230,6 +230,14 @@ func (ep *Endpoint) UnmarshalJSON(data []byte) error {
 	ep.Network = nw
 
 	vethPeers := strings.Split(aux.Device, "@")
+
+	// note: need to init all networks first in case
+	// the bridge doesn't exist after host rebooting
+	if err := Init(); err != nil {
+		return err
+	}
+
+	// this requires the network bridge exists.
 	br, err := netlink.LinkByName(nw.Name)
 	if err != nil {
 		return err

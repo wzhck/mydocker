@@ -49,7 +49,7 @@ func GetAllContainers() ([]*Container, error) {
 	for _, containerDir := range containerDirs {
 		uuid := containerDir.Name()
 		c := &Container{Uuid: uuid}
-		if c.Load(); err != nil {
+		if err := c.Load(); err != nil {
 			log.Errorf("failed to get the info of container %s: %v", uuid, err)
 			continue
 		}

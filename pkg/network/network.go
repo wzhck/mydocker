@@ -236,7 +236,7 @@ func (nw *Network) Load() error {
 			configFileName, err)
 	}
 
-	if err := json.Unmarshal(jsonBytes, &nw); err != nil {
+	if err := json.Unmarshal(jsonBytes, nw); err != nil {
 		return fmt.Errorf("failed to json-decode network %s: %v",
 			nw.Name, err)
 	}

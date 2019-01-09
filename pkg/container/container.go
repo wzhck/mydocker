@@ -220,15 +220,20 @@ func (c *Container) Load() error {
 			configFileName, err)
 	}
 
-	if err := json.Unmarshal(jsonBytes, &c); err != nil {
+	if err := json.Unmarshal(jsonBytes, c); err != nil {
 		return fmt.Errorf("failed to json-decode container %s: %v",
 			c.Uuid, err)
 	}
 
-	processDir := fmt.Sprintf("/proc/%d", c.Pid)
-	if exist, _ := util.FileOrDirExists(processDir); !exist {
-		c.Status = Stopped
-		c.Pid = 0
+	if c.Pid > 0 {
+		processDir := fmt.Sprintf("/proc/%d", c.Pid)
+		if exist, _ := util.FileOrDirExists(processDir); !exist {
+			c.Status = Stopped
+			c.Pid = 0
+		}
+		if err := c.Dump(); err != nil {
+			return err
+		}
 	}
 
 	return nil
