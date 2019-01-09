@@ -154,9 +154,9 @@ var Restart = cli.Command{
 	},
 }
 
-var Delete = cli.Command{
+var Remove = cli.Command{
 	Name:  "rm",
-	Usage: "Delete one or more containers",
+	Usage: "Remove one or more containers",
 	Action: func(ctx *cli.Context) error {
 		return operateContainers(ctx, container.Delete)
 	},

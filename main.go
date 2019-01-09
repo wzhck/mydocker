@@ -35,10 +35,15 @@ func main() {
 		container.Stop,
 		container.Start,
 		container.Restart,
-		container.Delete,
+		container.Remove,
+		network.RemoveNetworks,
+		image.RemoveImages,
+		image.Pull,
+		cmd.Inspect,
+		network.ListNetworks,
+		image.ListImages,
 		network.Command,
 		image.Command,
-		cmd.Inspect,
 	}
 
 	app.Flags = []cli.Flag{

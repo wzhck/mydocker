@@ -12,7 +12,7 @@ import (
 
 var Inspect = cli.Command{
 	Name:  "inspect",
-	Usage: "Print low-level information of mydocker objects",
+	Usage: "Print information of mydocker objects",
 	Action: func(ctx *cli.Context) error {
 		if len(ctx.Args()) < 1 {
 			return fmt.Errorf("missing object's name or uuid")

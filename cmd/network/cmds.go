@@ -11,7 +11,7 @@ var Command = cli.Command{
 	Subcommands: []cli.Command{
 		Init,
 		Create,
-		Delete,
+		Remove,
 		List,
 		Connect,
 		DisConnect,
@@ -50,9 +50,17 @@ var Create = cli.Command{
 	},
 }
 
-var Delete = cli.Command{
-	Name:  "delete",
-	Usage: "Delete one or more container networks",
+var Remove = cli.Command{
+	Name:  "rm",
+	Usage: "Remove one or more networks",
+	Action: func(ctx *cli.Context) error {
+		return operateNetworks(ctx, "delete")
+	},
+}
+
+var RemoveNetworks = cli.Command{
+	Name:  "rmn",
+	Usage: "Remove one or more networks",
 	Action: func(ctx *cli.Context) error {
 		return operateNetworks(ctx, "delete")
 	},
@@ -60,7 +68,15 @@ var Delete = cli.Command{
 
 var List = cli.Command{
 	Name:  "list",
-	Usage: "List all container networks",
+	Usage: "List networks on the host",
+	Action: func(ctx *cli.Context) error {
+		return listNetworks(ctx)
+	},
+}
+
+var ListNetworks = cli.Command{
+	Name:  "networks",
+	Usage: "List networks on the host",
 	Action: func(ctx *cli.Context) error {
 		return listNetworks(ctx)
 	},

@@ -9,31 +9,39 @@ var Command = cli.Command{
 	Usage: "Manage container images",
 	Subcommands: []cli.Command{
 		Pull,
-		Delete,
+		Remove,
 		List,
 	},
 }
 
-var Pull = cli.Command{
-	Name:  "pull",
-	Usage: "Pull an image from a registry",
-	Action: func(ctx *cli.Context) error {
-		return pull(ctx)
-	},
-}
+var (
+	Pull = cli.Command{
+		Name:   "pull",
+		Usage:  "Pull an image from a registry",
+		Action: pull,
+	}
 
-var Delete = cli.Command{
-	Name:  "delete",
-	Usage: "Remove one or more images",
-	Action: func(ctx *cli.Context) error {
-		return remove(ctx)
-	},
-}
+	Remove = cli.Command{
+		Name:   "rm",
+		Usage:  "Remove one or more images",
+		Action: remove,
+	}
 
-var List = cli.Command{
-	Name:  "list",
-	Usage: "List images on the host",
-	Action: func(ctx *cli.Context) error {
-		return list(ctx)
-	},
-}
+	RemoveImages = cli.Command{
+		Name:   "rmi",
+		Usage:  "Remove one or more images",
+		Action: remove,
+	}
+
+	List = cli.Command{
+		Name:   "list",
+		Usage:  "List images on the host",
+		Action: list,
+	}
+
+	ListImages = cli.Command{
+		Name:   "images",
+		Usage:  "List images on the host",
+		Action: list,
+	}
+)
