@@ -5,7 +5,6 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
-	"github.com/weikeit/mydocker/pkg/cgroups"
 	"github.com/weikeit/mydocker/pkg/image"
 	"github.com/weikeit/mydocker/pkg/network"
 	_ "github.com/weikeit/mydocker/pkg/nsenter"
@@ -27,11 +26,13 @@ func (c *Container) Run() error {
 	if parentCmd == nil {
 		return fmt.Errorf("failed to create parent process in container")
 	}
+
+	sendInitCommand(c.Commands, writePipe)
 	if err := parentCmd.Start(); err != nil {
 		return err
 	}
 
-	c.Pid = parentCmd.Process.Pid
+	c.Cgroups.Pid = parentCmd.Process.Pid
 	c.Status = Running
 	// util.PrintExeFile(parentCmd.Process.Pid)
 
@@ -40,17 +41,17 @@ func (c *Container) Run() error {
 		return err
 	}
 
-	cm := cgroups.NewCgroupManager(c.CgroupPath)
 	if !c.Detach {
-		defer cm.Destroy()
+		defer c.Cgroups.Destory()
 	}
 
-	cm.Set(c.Resources)
-	cm.Apply(parentCmd.Process.Pid)
+	if err := c.Cgroups.Set(); err != nil {
+		return err
+	}
 
-	SendInitCommand(c.Commands, writePipe)
-
-	cm.Apply(parentCmd.Process.Pid)
+	if err := c.Cgroups.Apply(); err != nil {
+		return err
+	}
 
 	if err := c.handleNetwork(Create); err != nil {
 		if err := image.ChangeCounts(c.Image, "delete"); err != nil {
@@ -102,18 +103,18 @@ func (c *Container) Logs(ctx *cli.Context) error {
 
 func (c *Container) Exec(cmdArray []string) error {
 	cmdStr := strings.Join(cmdArray, " ")
-	log.Debugf("will execute command '%s' in the container with pid %d:",
-		cmdStr, c.Pid)
+	log.Debugf("will execute command '%s' in the container "+
+		"with pid %d:", cmdStr, c.Cgroups.Pid)
 
 	cmd := exec.Command("/proc/self/exe", "exec")
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	os.Setenv(ContainerPid, fmt.Sprintf("%d", c.Pid))
+	os.Setenv(ContainerPid, fmt.Sprintf("%d", c.Cgroups.Pid))
 	os.Setenv(ContainerCmd, cmdStr)
 
-	containerEnvs, err := util.GetEnvsByPid(c.Pid)
+	containerEnvs, err := util.GetEnvsByPid(c.Cgroups.Pid)
 	if err != nil {
 		return err
 	}
@@ -132,11 +133,12 @@ func (c *Container) Stop() error {
 	}
 
 	msg := "failed to stop container %s by sending %s signal"
-	if exist, _ := util.FileOrDirExists(fmt.Sprintf("/proc/%d", c.Pid)); exist {
-		if err := syscall.Kill(c.Pid, syscall.SIGTERM); err != nil {
+	processDir := fmt.Sprintf("/proc/%d", c.Cgroups.Pid)
+	if exist, _ := util.FileOrDirExists(processDir); exist {
+		if err := syscall.Kill(c.Cgroups.Pid, syscall.SIGTERM); err != nil {
 			log.Debugf(msg, c.Uuid, "SIGTERM")
-			if err := syscall.Kill(c.Pid, syscall.SIGKILL); err != nil {
-				return fmt.Errorf(msg, c.Uuid, "SIGKILL")
+			if err := syscall.Kill(c.Cgroups.Pid, syscall.SIGKILL); err != nil {
+				log.Debugf(msg, c.Uuid, "SIGKILL")
 			}
 		}
 	}
@@ -145,7 +147,7 @@ func (c *Container) Stop() error {
 		return err
 	}
 
-	c.Pid = 0
+	c.Cgroups.Pid = 0
 	c.Status = Stopped
 	if err := c.Dump(); err != nil {
 		return fmt.Errorf("failed to modify the status of container %s : %v",
@@ -179,6 +181,7 @@ func (c *Container) Delete() error {
 		}
 	}
 
+	c.Cgroups.Destory()
 	c.cleanNetworkImage()
 	return c.cleanupRootfs()
 }
@@ -225,10 +228,10 @@ func (c *Container) Load() error {
 			c.Uuid, err)
 	}
 
-	if c.Pid > 0 {
-		processDir := fmt.Sprintf("/proc/%d", c.Pid)
+	if c.Cgroups.Pid > 0 {
+		processDir := fmt.Sprintf("/proc/%d", c.Cgroups.Pid)
 		if exist, _ := util.FileOrDirExists(processDir); !exist {
-			c.Pid = 0
+			c.Cgroups.Pid = 0
 			c.Status = Stopped
 			if err := c.Dump(); err != nil {
 				return err
@@ -261,9 +264,9 @@ func (c *Container) handleNetwork(action string) error {
 	for _, ep := range c.Endpoints {
 		switch action {
 		case Create:
-			err = ep.Connect(c.Pid)
+			err = ep.Connect(c.Cgroups.Pid)
 		case Delete:
-			err = ep.DisConnect(c.Pid)
+			err = ep.DisConnect(c.Cgroups.Pid)
 		default:
 			err = unknownErr
 		}

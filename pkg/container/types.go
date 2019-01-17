@@ -1,7 +1,7 @@
 package container
 
 import (
-	"github.com/weikeit/mydocker/pkg/cgroups/subsystems"
+	"github.com/weikeit/mydocker/pkg/cgroups"
 	"github.com/weikeit/mydocker/pkg/network"
 	"os"
 )
@@ -18,21 +18,17 @@ type Container struct {
 	Uuid          string              `json:"Uuid"`
 	Name          string              `json:"Name"`
 	Dns           []string            `json:"Dns"`
-	Pid           int                 `json:"Pid"`
 	Image         string              `json:"Image"`
-	CgroupPath    string              `json:"CgroupPath"`
 	CreateTime    string              `json:"CreateTime"`
 	Status        string              `json:"Status"`
 	StorageDriver string              `json:"StorageDriver"`
 	Rootfs        *Rootfs             `json:"Rootfs"`
 	Commands      []string            `json:"Commands"`
+	Cgroups       *cgroups.Cgroups    `json:"Cgroups"`
 	Volumes       map[string]string   `json:"Volumes"`
 	Envs          map[string]string   `json:"Envs"`
 	Ports         map[string]string   `json:"Ports"`
 	Endpoints     []*network.Endpoint `json:"Endpoints"`
-
-	// the resources limits.
-	Resources *subsystems.ResourceConfig `json:"Resources"`
 }
 
 type Driver interface {

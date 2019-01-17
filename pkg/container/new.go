@@ -5,7 +5,7 @@ import (
 	"github.com/Pallinder/go-randomdata"
 	"github.com/urfave/cli"
 	"github.com/vishvananda/netlink"
-	"github.com/weikeit/mydocker/pkg/cgroups/subsystems"
+	"github.com/weikeit/mydocker/pkg/cgroups"
 	"github.com/weikeit/mydocker/pkg/image"
 	"github.com/weikeit/mydocker/pkg/network"
 	"github.com/weikeit/mydocker/util"
@@ -77,6 +77,11 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 		MergeDir:     path.Join(ContainersDir, uuid, driverConfig["mergeDir"]),
 	}
 
+	resources, err := cgroups.NewResources(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	volumes := make(map[string]string)
 	for _, volumeArg := range ctx.StringSlice("volume") {
 		volumePeers := strings.Split(volumeArg, ":")
@@ -139,15 +144,11 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 		Ports:         ports,
 		Endpoints:     endpoints,
 		Status:        Creating,
-		CgroupPath:    MyDocker + "/" + uuid,
 		CreateTime:    time.Now().Format("2006-01-02 15:04:05"),
 		StorageDriver: storageDriver,
-		Resources: &subsystems.ResourceConfig{
-			MemoryLimit: ctx.String("memory"),
-			CpuPeriod:   ctx.String("cpu-period"),
-			CpuQuota:    ctx.String("cpu-quota"),
-			CpuShare:    ctx.String("cpu-share"),
-			CpuSet:      ctx.String("cpuset"),
+		Cgroups: &cgroups.Cgroups{
+			Path:      MyDocker + "/" + uuid,
+			Resources: resources,
 		},
 	}, nil
 }
@@ -231,7 +232,7 @@ func CreateEndpoints(cName string, nwNames []string, ports map[string]string) ([
 			Ports:   ports,
 			Device: &netlink.Veth{
 				LinkAttrs: la,
-				PeerName:  "cif-" + hashed[:8],
+				PeerName:  "ceth-" + hashed[:8],
 			},
 		})
 	}

@@ -104,7 +104,7 @@ func handleConnection(ctx *cli.Context, action string) error {
 		}
 
 		// there's only one endpoint to be added.
-		if err := eps[0].Connect(c.Pid); err != nil {
+		if err := eps[0].Connect(c.Cgroups.Pid); err != nil {
 			// note: need to release the ipaddr if failed.
 			return network.IPAllocator.Release(nw, &eps[0].IPAddr)
 		}
@@ -123,7 +123,7 @@ func handleConnection(ctx *cli.Context, action string) error {
 		c.Endpoints = c.Endpoints[:0]
 		for _, ep := range tmpEndpoints {
 			// first, disconnect all the endpoints.
-			if err := ep.DisConnect(c.Pid); err != nil {
+			if err := ep.DisConnect(c.Cgroups.Pid); err != nil {
 				return err
 			}
 			if ep.Network.Name == nwName {
@@ -140,7 +140,7 @@ func handleConnection(ctx *cli.Context, action string) error {
 
 		for _, ep := range c.Endpoints {
 			// then, connect all the remaining endpoints.
-			if err := ep.Connect(c.Pid); err != nil {
+			if err := ep.Connect(c.Cgroups.Pid); err != nil {
 				return err
 			}
 		}

@@ -13,7 +13,7 @@ import (
 )
 
 func RunContainerInitProcess() error {
-	cmds := ReadInitCommand()
+	cmds := receiveInitCommand()
 	if cmds == nil || len(cmds) == 0 {
 		return fmt.Errorf("failed to run user's command in container: cmd is nil")
 	}

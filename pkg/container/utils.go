@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func SendInitCommand(cmds []string, writePipe *os.File) {
+func sendInitCommand(cmds []string, writePipe *os.File) {
 	cmdsStr := strings.Join(cmds, "\u0000")
 	log.Debugf("runCommand sends user-defined command: %s",
 		strings.Replace(cmdsStr, "\u0000", " ", -1))
@@ -17,7 +17,7 @@ func SendInitCommand(cmds []string, writePipe *os.File) {
 	writePipe.Close()
 }
 
-func ReadInitCommand() []string {
+func receiveInitCommand() []string {
 	pipe := os.NewFile(uintptr(3), "pipe")
 	msg, err := ioutil.ReadAll(pipe)
 	if err != nil {

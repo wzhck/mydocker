@@ -40,7 +40,7 @@ func listContainers(_ *cli.Context) error {
 			c.Image,
 			c.Status,
 			c.StorageDriver,
-			c.Pid,
+			c.Cgroups.Pid,
 			c.Commands,
 			ipaddrs,
 			ports,

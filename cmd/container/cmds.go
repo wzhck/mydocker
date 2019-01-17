@@ -3,6 +3,7 @@ package container
 import (
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
+	"github.com/weikeit/mydocker/pkg/cgroups"
 	"github.com/weikeit/mydocker/pkg/container"
 )
 
@@ -16,70 +17,51 @@ var Init = cli.Command{
 	},
 }
 
+var runFlags = []cli.Flag{
+	cli.BoolFlag{
+		Name:  "detach,d",
+		Usage: "Run the container in background",
+	},
+	cli.StringFlag{
+		Name:  "name,n",
+		Usage: "Assign a name to the container",
+	},
+	cli.StringSliceFlag{
+		Name:  "dns",
+		Usage: "Set DNS servers in the container",
+		Value: &cli.StringSlice{"8.8.8.8", "8.8.4.4"},
+	},
+	cli.StringFlag{
+		Name:  "image,i",
+		Usage: "The image to be used (name or id)",
+	},
+	cli.StringSliceFlag{
+		Name:  "env,e",
+		Usage: "Set environment variables, e.g. -e key=value",
+	},
+	cli.StringSliceFlag{
+		Name:  "volume,v",
+		Usage: "Bind a local directory/file, e.g. -v /src:/dst",
+	},
+	cli.StringSliceFlag{
+		Name:  "network,net",
+		Usage: "Connect the container to a network (none to disable)",
+	},
+	cli.StringSliceFlag{
+		Name:  "publish,p",
+		Usage: "Publish the container's port(s) to the host",
+	},
+	cli.StringFlag{
+		Name:  "storage-driver,s",
+		Usage: "Storage driver to be used",
+		Value: "overlay2",
+	},
+}
+
 var Run = cli.Command{
 	Name:  "run",
 	Usage: "Create a new mydocker container",
-	Flags: []cli.Flag{
-		cli.BoolFlag{
-			Name:  "detach,d",
-			Usage: "Run the container in background",
-		},
-		cli.StringFlag{
-			Name:  "name,n",
-			Usage: "Assign a name to the container",
-		},
-		cli.StringSliceFlag{
-			Name:  "dns",
-			Value: &cli.StringSlice{"8.8.8.8", "8.8.4.4"},
-			Usage: "Set DNS servers",
-		},
-		cli.StringFlag{
-			Name:  "image,i",
-			Usage: "The image to be used (name or id)",
-		},
-		cli.StringFlag{
-			Name:  "memory,m",
-			Usage: "Limit the container memory usage",
-		},
-		cli.Int64Flag{
-			Name:  "cpu-period",
-			Value: 250000,
-			Usage: "Limit CPU CFS period in us",
-		},
-		cli.Int64Flag{
-			Name:  "cpu-quota",
-			Usage: "Limit CPU CFS quota in us",
-		},
-		cli.Int64Flag{
-			Name:  "cpu-share",
-			Usage: "CPU shares (relative weight)",
-		},
-		cli.StringFlag{
-			Name:  "cpuset",
-			Usage: "CPUs in which to allow execution (0-3, 0,1)",
-		},
-		cli.StringSliceFlag{
-			Name:  "volume,v",
-			Usage: "Bind a local directory/file, e.g. -v /src:/dst",
-		},
-		cli.StringSliceFlag{
-			Name:  "env,e",
-			Usage: "Set environment variables, e.g. -e key=value",
-		},
-		cli.StringSliceFlag{
-			Name:  "network,net",
-			Usage: "Connect the container to a network (none to disable)",
-		},
-		cli.StringSliceFlag{
-			Name:  "publish,p",
-			Usage: "Publish the container's port(s) to the host",
-		},
-		cli.StringFlag{
-			Name:  "storage-driver,s",
-			Value: "overlay2",
-			Usage: "Storage driver to be used",
-		},
-	},
+	Flags: append(runFlags, cgroups.Flags...),
 	Action: func(ctx *cli.Context) error {
 		c, err := container.NewContainer(ctx)
 		if err != nil {
