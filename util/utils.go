@@ -10,6 +10,8 @@ import (
 	"path"
 	"sort"
 	"strings"
+	"syscall"
+	"time"
 )
 
 func PrintExeFile(pid int) {
@@ -20,6 +22,24 @@ func PrintExeFile(pid int) {
 	}
 	log.Debugf("the executable file of pid [%d] is %s", pid,
 		strings.Trim(string(output), "\n"))
+}
+
+func KillProcess(pid int) error {
+	processDir := fmt.Sprintf("/proc/%d", pid)
+	if exist, _ := FileOrDirExists(processDir); !exist {
+		return nil
+	}
+
+	msg := "failed to kill the process %d by sending signal %s"
+	if err := syscall.Kill(pid, syscall.SIGTERM); err != nil {
+		log.Warnf(msg, pid, "SIGTERM")
+		time.Sleep(50 * time.Millisecond)
+		if err := syscall.Kill(pid, syscall.SIGKILL); err != nil {
+			return fmt.Errorf(msg, pid, "SIGKILL")
+		}
+	}
+
+	return nil
 }
 
 func FileOrDirExists(fileOrDir string) (bool, error) {

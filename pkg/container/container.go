@@ -14,7 +14,6 @@ import (
 	"os/exec"
 	"path"
 	"strings"
-	"syscall"
 )
 
 func (c *Container) Run() error {
@@ -66,8 +65,8 @@ func (c *Container) Run() error {
 		c.cleanNetworkImage()
 		return c.cleanupRootfs()
 	} else {
-		_, err := fmt.Fprintln(os.Stdout, c.Uuid)
-		return err
+		fmt.Println(c.Uuid)
+		return nil
 	}
 }
 
@@ -97,8 +96,8 @@ func (c *Container) Logs(ctx *cli.Context) error {
 			logFileName, err)
 	}
 
-	_, err = fmt.Fprintf(os.Stdout, string(contents))
-	return err
+	fmt.Println(string(contents))
+	return nil
 }
 
 func (c *Container) Exec(cmdArray []string) error {
@@ -124,6 +123,10 @@ func (c *Container) Exec(cmdArray []string) error {
 }
 
 func (c *Container) Stop() error {
+	if c.Status == Stopped {
+		return nil
+	}
+
 	if len(c.Endpoints) > 0 {
 		if err := c.handleNetwork(Delete); err != nil {
 			// just need to record error logs if failed.
@@ -132,15 +135,8 @@ func (c *Container) Stop() error {
 		}
 	}
 
-	msg := "failed to stop container %s by sending %s signal"
-	processDir := fmt.Sprintf("/proc/%d", c.Cgroups.Pid)
-	if exist, _ := util.FileOrDirExists(processDir); exist {
-		if err := syscall.Kill(c.Cgroups.Pid, syscall.SIGTERM); err != nil {
-			log.Debugf(msg, c.Uuid, "SIGTERM")
-			if err := syscall.Kill(c.Cgroups.Pid, syscall.SIGKILL); err != nil {
-				log.Debugf(msg, c.Uuid, "SIGKILL")
-			}
-		}
+	if err := util.KillProcess(c.Cgroups.Pid); err != nil {
+		return err
 	}
 
 	if err := c.umountRootfsVolume(); err != nil {
@@ -154,8 +150,10 @@ func (c *Container) Stop() error {
 			c.Uuid, err)
 	}
 
-	_, err := fmt.Fprintln(os.Stdout, c.Uuid)
-	return err
+	c.Cgroups.Destory()
+	fmt.Println(c.Uuid)
+
+	return nil
 }
 
 func (c *Container) Start() error {
@@ -181,7 +179,6 @@ func (c *Container) Delete() error {
 		}
 	}
 
-	c.Cgroups.Destory()
 	c.cleanNetworkImage()
 	return c.cleanupRootfs()
 }

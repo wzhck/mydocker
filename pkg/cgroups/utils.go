@@ -3,11 +3,13 @@ package cgroups
 import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
+	"github.com/weikeit/mydocker/util"
 	"io/ioutil"
 	"os"
 	"path"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -102,11 +104,32 @@ func remove(subsystemRootName, cgPath string) error {
 		// which maybe contain zombie process, we must move these processes to the
 		// container's parent cgroup of current subsystem before rmdir it.
 		log.Debugf("the contents of %s is still NOT empty", cgroupProcsFile)
-		processes := string(procsBytes[:len(procsBytes)-1])
+
+		processesStr := string(procsBytes[:len(procsBytes)-1])
 		parentCgroupProcs := path.Join(path.Dir(subsystemPath), cgroupProcs)
+
 		// NOTE: can only add ONE process to the file cgroup.procs once.
-		for _, process := range strings.Split(processes, "\n") {
-			log.Debugf("moving the zombie process %s to its parent cgroup %s",
+		processArray := strings.Split(processesStr, "\n")
+		for i := len(processArray) - 1; i >= 0; i-- {
+			process := processArray[i]
+			processId, _ := strconv.Atoi(process)
+			log.Debugf("killing the orphan process: %d", processId)
+
+			// also need to kill the orphan process if they still exist
+			// after the main process was killed in the reversed order.
+			util.KillProcess(processId)
+			time.Sleep(100 * time.Millisecond)
+
+			// also need to recheck if the process exists after killing it.
+			// because KillProcess() send SIGTERM signal first, the process
+			// maybe just restart itself when receiving SIGTERM signal.
+			processDir := fmt.Sprintf("/proc/%d", processId)
+			if exist, _ := util.FileOrDirExists(processDir); !exist {
+				continue
+			}
+
+			// if failed to kill orphan process, move them to parent cgroup.
+			log.Debugf("moving the orphan process %s to its parent cgroup %s",
 				process, parentCgroupProcs)
 			if err := ioutil.WriteFile(parentCgroupProcs, []byte(process), 0644); err != nil {
 				return err
