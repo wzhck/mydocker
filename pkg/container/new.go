@@ -147,7 +147,7 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 		CreateTime:    time.Now().Format("2006-01-02 15:04:05"),
 		StorageDriver: storageDriver,
 		Cgroups: &cgroups.Cgroups{
-			Path:      MyDocker + "/" + uuid,
+			Path:      fmt.Sprintf("/%s/%s", MyDocker, uuid),
 			Resources: resources,
 		},
 	}, nil

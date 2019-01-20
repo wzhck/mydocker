@@ -6,9 +6,11 @@ import (
 	"github.com/weikeit/mydocker/util"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 	"syscall"
 )
 
@@ -39,15 +41,19 @@ func RunContainerInitProcess() error {
 		return err
 	}
 
-	path, err := exec.LookPath(cmds[0])
+	if err := mountCgroups(); err != nil {
+		return err
+	}
+
+	cmdPath, err := exec.LookPath(cmds[0])
 	if err != nil {
 		return fmt.Errorf("failed to find the executable file's path of %s: %v",
 			cmds[0], err)
 	} else {
-		log.Debugf("find the executable file's path: %s", path)
+		log.Debugf("find the executable file's path: %s", cmdPath)
 	}
 
-	if err := syscall.Exec(path, cmds, os.Environ()); err != nil {
+	if err := syscall.Exec(cmdPath, cmds, os.Environ()); err != nil {
 		log.Errorf(err.Error())
 	}
 
@@ -95,14 +101,10 @@ func pivotRoot(root string) error {
 func mountVFS() error {
 	for _, m := range Mounts {
 		if m.Data != "" {
-			re, err := regexp.Compile(`(?:^|\W+)mode=(\d{4})`)
-			if err != nil {
-				panic(err)
-			}
-
-			results := re.FindAllStringSubmatch(m.Data, -1)
-			if len(results) == 1 {
-				mode, _ := strconv.ParseInt(results[0][1], 8, 32)
+			re, _ := regexp.Compile(`(?:^|\W+)mode=(\d+)`)
+			results := re.FindStringSubmatch(m.Data)
+			if len(results) == 2 {
+				mode, _ := strconv.ParseInt(results[1], 8, 32)
 				// log.Debugf("create the dir %s with mode %o", m.Target, mode)
 				if err := os.MkdirAll(m.Target, os.FileMode(mode)); err != nil {
 					return fmt.Errorf("failed to mkdir %s: %v", m.Target, err)
@@ -136,6 +138,84 @@ func setupDevSymlinks() error {
 		if err := os.Symlink(src, dst); err != nil && !os.IsExist(err) {
 			return fmt.Errorf("failed to create symlink %s -> %s: %v",
 				dst, src, err)
+		}
+	}
+
+	return nil
+}
+
+func mountCgroups() error {
+	const (
+		tmpCgroup  = "/tmp/cgroup"
+		cgroupRoot = "/sys/fs/cgroup"
+	)
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	defer os.Chdir(cwd)
+
+	if err := os.Chdir(cgroupRoot); err != nil {
+		return err
+	}
+
+	if err := os.MkdirAll(tmpCgroup, 0755); err != nil {
+		return err
+	}
+
+	defaultFlags := uintptr(defaultMountFlags)
+	if err := syscall.Mount("tmpfs", tmpCgroup, "tmpfs", defaultFlags, ""); err != nil {
+		return fmt.Errorf("failed to mount %s: %v", tmpCgroup, err)
+	}
+
+	defer func() {
+		exec.Command("umount", tmpCgroup).Run()
+		os.RemoveAll(tmpCgroup)
+	}()
+
+	cgroupPaths, err := getContainerCgroupPaths()
+	if err != nil {
+		return err
+	}
+
+	for subsystemName, cgroupPath := range cgroupPaths {
+		tmpSubsystemDir := path.Join(tmpCgroup, subsystemName)
+		subsystemDir := path.Join(cgroupRoot, subsystemName)
+
+		for _, dir := range []string{tmpSubsystemDir, subsystemDir} {
+			if err := os.MkdirAll(dir, 0755); err != nil {
+				return fmt.Errorf("failed to mkdir %s: %v", dir, err)
+			}
+		}
+
+		options := fmt.Sprintf("-t cgroup -o nosuid,nodev,noexec,ro,%s cgroup %s",
+			subsystemName, tmpSubsystemDir)
+		if err := exec.Command("mount", strings.Split(options, " ")...).Run(); err != nil {
+			return fmt.Errorf("failed to execute `mount %s`: %v", options, err)
+		}
+
+		containerSubsystemDir := path.Join(tmpSubsystemDir, cgroupPath)
+		options = fmt.Sprintf("-o ro,bind %s %s", containerSubsystemDir, subsystemDir)
+		if err := exec.Command("mount", strings.Split(options, " ")...).Run(); err != nil {
+			return fmt.Errorf("failed to execute `mount %s`: %v", options, err)
+		}
+
+		if err := exec.Command("umount", tmpSubsystemDir).Run(); err != nil {
+			return fmt.Errorf("failed to umount %s: %v", tmpSubsystemDir, err)
+		}
+
+		if err := os.RemoveAll(tmpSubsystemDir); err != nil {
+			return fmt.Errorf("failed to remove %s: %v", tmpSubsystemDir, err)
+		}
+
+		if strings.Contains(subsystemName, ",") {
+			for _, subs := range strings.Split(subsystemName, ",") {
+				if err := os.Symlink(subsystemName, subs); err != nil {
+					return fmt.Errorf("failed to create symlink %s => %s: %v",
+						subs, subsystemName, err)
+				}
+			}
 		}
 	}
 

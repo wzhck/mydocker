@@ -6,6 +6,7 @@ import (
 	"github.com/weikeit/mydocker/util"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"strings"
 )
 
@@ -78,4 +79,26 @@ func GetContainerByNameOrUuid(identifier string) (*Container, error) {
 	}
 
 	return c, nil
+}
+
+// cgroupPaths = {"cpu,cpuacct": "/mydocker/c627f5f58033", ..., }
+func getContainerCgroupPaths() (map[string]string, error) {
+	contentsBytes, err := ioutil.ReadFile("/proc/self/cgroup")
+	if err != nil {
+		return nil, err
+	}
+
+	cgroupPaths := make(map[string]string)
+	// the info should be `9:cpuset:/mydocker/c627f5f58033`
+	restr := fmt.Sprintf(`(\d+):([^:]+):(/%s/[0-9a-f]+)`, MyDocker)
+	re, _ := regexp.Compile(restr)
+	for _, line := range strings.Split(string(contentsBytes), "\n") {
+		if !re.MatchString(line) {
+			continue
+		}
+		parts := re.FindStringSubmatch(line)
+		cgroupPaths[parts[2]] = parts[3]
+	}
+
+	return cgroupPaths, nil
 }

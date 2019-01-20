@@ -40,10 +40,6 @@ func (c *Container) Run() error {
 		return err
 	}
 
-	if !c.Detach {
-		defer c.Cgroups.Destory()
-	}
-
 	if err := c.Cgroups.Set(); err != nil {
 		return err
 	}
@@ -63,6 +59,7 @@ func (c *Container) Run() error {
 		parentCmd.Wait()
 		c.handleNetwork(Delete)
 		c.cleanNetworkImage()
+		c.Cgroups.Destory()
 		return c.cleanupRootfs()
 	} else {
 		fmt.Println(c.Uuid)

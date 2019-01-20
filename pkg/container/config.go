@@ -77,14 +77,21 @@ var (
 			Source: "sysfs",
 			Target: "/sys",
 			Fstype: "sysfs",
-			Flags:  defaultMountFlags | syscall.MS_RDONLY,
+			Flags:  defaultMountFlags | syscall.MS_RDONLY | syscall.MS_RELATIME,
+		},
+		{
+			Source: "tmpfs",
+			Target: "/sys/fs/cgroup",
+			Fstype: "tmpfs",
+			Flags:  defaultMountFlags,
+			Data:   "mode=0755,size=100M",
 		},
 		{
 			Source: "tmpfs",
 			Target: "/dev",
 			Fstype: "tmpfs",
 			Flags:  syscall.MS_NOSUID | syscall.MS_STRICTATIME,
-			Data:   "mode=0755,size=200M",
+			Data:   "mode=0755,size=100M",
 		},
 		{
 			Source: "devpts",
