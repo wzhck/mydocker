@@ -69,11 +69,6 @@ func getContainerFromArg(ctx *cli.Context) (*container.Container, error) {
 }
 
 func parseExecArgs(ctx *cli.Context) (*container.Container, []string, error) {
-	// this is for callback.
-	if os.Getenv(container.ContainerPid) != "" {
-		return nil, nil, nil
-	}
-
 	switch argsLen := len(ctx.Args()); argsLen {
 	case 0:
 		return nil, nil, fmt.Errorf("missing container's name/uuid and command")

@@ -14,11 +14,6 @@ const (
 )
 
 const (
-	ContainerPid = "ContainerPid"
-	ContainerCmd = "ContainerCmd"
-)
-
-const (
 	Creating = "creating"
 	Running  = "running"
 	Stopped  = "stopped"

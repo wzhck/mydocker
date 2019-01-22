@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"github.com/weikeit/mydocker/cmd"
@@ -55,7 +56,9 @@ func main() {
 	}
 
 	app.Before = func(ctx *cli.Context) error {
-		if ctx.Bool("debug") {
+		debug := ctx.Bool("debug")
+		os.Setenv("debug", fmt.Sprintf("%t", debug))
+		if debug {
 			log.SetLevel(log.DebugLevel)
 		}
 

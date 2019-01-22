@@ -100,15 +100,21 @@ func (c *Container) Logs(ctx *cli.Context) error {
 func (c *Container) Exec(cmdArray []string) error {
 	cmdStr := strings.Join(cmdArray, " ")
 	log.Debugf("will execute command '%s' in the container "+
-		"with pid %d:", cmdStr, c.Cgroups.Pid)
+		"(pid: %d)", cmdStr, c.Cgroups.Pid)
 
 	cmd := exec.Command("/proc/self/exe", "exec")
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	os.Setenv(ContainerPid, fmt.Sprintf("%d", c.Cgroups.Pid))
-	os.Setenv(ContainerCmd, cmdStr)
+	// pass these environment variables to the nsenter.go
+	// note: need to rename the env "debug", or nsenter won't
+	// receive any change of the env "debug", don't know why?
+	os.Setenv("debug_nsenter", os.Getenv("debug"))
+	os.Setenv("container_pid", fmt.Sprintf("%d", c.Cgroups.Pid))
+	os.Setenv("container_cmd", cmdStr)
+	os.Setenv("cgroup_root", "/sys/fs/cgroup")
+	os.Setenv("cgroup_path", c.Cgroups.Path)
 
 	containerEnvs, err := util.GetEnvsByPid(c.Cgroups.Pid)
 	if err != nil {
