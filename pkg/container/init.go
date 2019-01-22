@@ -4,6 +4,7 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/weikeit/mydocker/util"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -42,6 +43,10 @@ func RunContainerInitProcess() error {
 	}
 
 	if err := mountCgroups(); err != nil {
+		return err
+	}
+
+	if err := setHostname(); err != nil {
 		return err
 	}
 
@@ -217,6 +222,19 @@ func mountCgroups() error {
 				}
 			}
 		}
+	}
+
+	return nil
+}
+
+func setHostname() error {
+	hostname, err := ioutil.ReadFile("/etc/hostname")
+	if err != nil {
+		return fmt.Errorf("failed to read /etc/hostname")
+	}
+
+	if err := syscall.Sethostname(hostname[:len(hostname)-1]); err != nil {
+		return fmt.Errorf("failed to sethostname in container: %s", err)
 	}
 
 	return nil

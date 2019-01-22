@@ -2,6 +2,7 @@ package network
 
 import (
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"github.com/weikeit/mydocker/pkg/container"
 	"github.com/weikeit/mydocker/pkg/network"
@@ -147,6 +148,11 @@ func handleConnection(ctx *cli.Context, action string) error {
 
 	default:
 		return fmt.Errorf("unknown action %s", action)
+	}
+
+	// note: we also need to reconfig /etc/hosts.
+	if err := c.ConfigHosts(); err != nil {
+		log.Warn("failed to reconfig /etc/hosts using latest endpoints")
 	}
 
 	return c.Dump()

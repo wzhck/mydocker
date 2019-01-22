@@ -11,10 +11,20 @@ func (c *Container) prepareRootfs() error {
 	if err := c.createRootfs(); err != nil {
 		return err
 	}
+
 	if err := c.mountRootfsVolume(); err != nil {
 		return err
 	}
-	return c.setDNS()
+
+	if err := c.configHostname(); err != nil {
+		return err
+	}
+
+	if err := c.configDNS(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (c *Container) cleanupRootfs() error {

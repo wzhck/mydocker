@@ -30,6 +30,11 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 		return nil, fmt.Errorf("the container name %s already exist", name)
 	}
 
+	hostname := ctx.String("hostname")
+	if hostname == "" {
+		hostname = name
+	}
+
 	uuid := util.Sha256Sum(name)[:12]
 
 	dns := ctx.StringSlice("dns")
@@ -135,6 +140,7 @@ func NewContainer(ctx *cli.Context) (*Container, error) {
 		Detach:        detach,
 		Uuid:          uuid,
 		Name:          name,
+		Hostname:      hostname,
 		Dns:           dns,
 		Image:         imgNameOrUuid,
 		Commands:      commands,

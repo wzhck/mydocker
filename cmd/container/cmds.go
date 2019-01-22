@@ -26,6 +26,10 @@ var runFlags = []cli.Flag{
 		Name:  "name,n",
 		Usage: "Assign a name to the container",
 	},
+	cli.StringFlag{
+		Name:  "hostname",
+		Usage: "Set hostname in the container",
+	},
 	cli.StringSliceFlag{
 		Name:  "dns",
 		Usage: "Set DNS servers in the container",

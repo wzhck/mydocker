@@ -279,18 +279,49 @@ func (c *Container) handleNetwork(action string) error {
 	return nil
 }
 
-func (c *Container) setDNS() error {
+func (c *Container) ConfigHosts() error {
+	etcHosts := path.Join(c.Rootfs.WriteDir, "/etc/hosts")
+	etcHostsLines := append(defaultHostsLines[:0:0], defaultHostsLines...)
+	for _, ep := range c.Endpoints {
+		etcHostsLines = append(etcHostsLines, fmt.Sprintf("%s %s", ep.IPAddr, c.Hostname))
+	}
+
+	etcHostsBytes := []byte(strings.Join(etcHostsLines, "\n") + "\n")
+	if err := util.EnSureFileExists(etcHosts); err != nil {
+		return fmt.Errorf("failed to create %s in container: %v", etcHosts, err)
+	}
+	if err := ioutil.WriteFile(etcHosts, etcHostsBytes, 0644); err != nil {
+		return fmt.Errorf("failed to write contents into %s: %v", etcHosts, err)
+	}
+
+	return nil
+}
+
+func (c *Container) configHostname() error {
+	etcHostname := path.Join(c.Rootfs.WriteDir, "/etc/hostname")
+	if err := util.EnSureFileExists(etcHostname); err != nil {
+		return fmt.Errorf("failed to create %s in container: %v", etcHostname, err)
+	}
+	if err := ioutil.WriteFile(etcHostname, []byte(c.Hostname+"\n"), 0644); err != nil {
+		return fmt.Errorf("failed to write contents into %s: %v", etcHostname, err)
+	}
+
+	return c.ConfigHosts()
+}
+
+func (c *Container) configDNS() error {
 	var nameservers []string
 	for _, dns := range c.Dns {
 		nameservers = append(nameservers, fmt.Sprintf("nameserver %s", dns))
 	}
-	resolvContent := []byte(strings.Join(nameservers, "\n") + "\n")
 
-	resolvConf := path.Join(c.Rootfs.WriteDir, "etc", "resolv.conf")
+	resolvConf := path.Join(c.Rootfs.WriteDir, "/etc/resolv.conf")
+	resolvConfBytes := []byte(strings.Join(nameservers, "\n") + "\n")
+
 	if err := util.EnSureFileExists(resolvConf); err != nil {
 		return fmt.Errorf("failed to create %s in container: %v", resolvConf, err)
 	}
-	if err := ioutil.WriteFile(resolvConf, resolvContent, 0600); err != nil {
+	if err := ioutil.WriteFile(resolvConf, resolvConfBytes, 0644); err != nil {
 		return fmt.Errorf("failed to write contents into %s: %v", resolvConf, err)
 	}
 

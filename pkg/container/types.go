@@ -17,6 +17,7 @@ type Container struct {
 	Detach        bool                `json:"Detach"`
 	Uuid          string              `json:"Uuid"`
 	Name          string              `json:"Name"`
+	Hostname      string              `json:"Hostname"`
 	Dns           []string            `json:"Dns"`
 	Image         string              `json:"Image"`
 	CreateTime    string              `json:"CreateTime"`
