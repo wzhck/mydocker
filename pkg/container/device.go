@@ -3,7 +3,7 @@ package container
 import (
 	"fmt"
 	"os"
-	"path/filepath"
+	"path"
 	"syscall"
 )
 
@@ -39,7 +39,7 @@ func (d *Device) create() error {
 		return fmt.Errorf("unknown type '%c' for device %s", d.Type, d.Path)
 	}
 
-	if err := os.MkdirAll(filepath.Dir(d.Path), 0755); err != nil {
+	if err := os.MkdirAll(path.Dir(d.Path), 0755); err != nil {
 		return err
 	}
 	if err := syscall.Mknod(d.Path, uint32(fileMode), d.mkdev()); err != nil {

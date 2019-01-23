@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -18,54 +17,45 @@ import (
 func RunContainerInitProcess() error {
 	cmds := receiveInitCommand()
 	if cmds == nil || len(cmds) == 0 {
-		return fmt.Errorf("failed to run user's command in container: cmd is nil")
+		return fmt.Errorf("missing command to be executed in container")
 	}
 
-	root, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("failed to get current work directory: %v", err)
+	initFuncs := []func() error{
+		pivotRoot,
+		mountVFS,
+		createDevices,
+		createDevSymlinks,
+		mountCgroups,
+		setHostname,
 	}
 
-	if err := pivotRoot(root); err != nil {
-		return err
-	}
-
-	if err := mountVFS(); err != nil {
-		return err
-	}
-
-	if err := createDevices(); err != nil {
-		return err
-	}
-
-	if err := setupDevSymlinks(); err != nil {
-		return err
-	}
-
-	if err := mountCgroups(); err != nil {
-		return err
-	}
-
-	if err := setHostname(); err != nil {
-		return err
+	for _, initFunc := range initFuncs {
+		if err := initFunc(); err != nil {
+			return err
+		}
 	}
 
 	cmdPath, err := exec.LookPath(cmds[0])
 	if err != nil {
-		return fmt.Errorf("failed to find the executable file's path of %s: %v",
-			cmds[0], err)
+		return fmt.Errorf("failed to find the executable file's "+
+			"path of %s: %v", cmds[0], err)
 	} else {
 		log.Debugf("find the executable file's path: %s", cmdPath)
 	}
 
 	if err := syscall.Exec(cmdPath, cmds, os.Environ()); err != nil {
-		log.Errorf(err.Error())
+		return fmt.Errorf("failed to call execve syscall: %v", err)
 	}
 
 	return nil
 }
 
-func pivotRoot(root string) error {
+func pivotRoot() error {
+	root, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get current work directory: %v", err)
+	}
+
 	// note: runc use the flags MS_SLAVE and MS_REC.
 	if err := syscall.Mount("", "/", "", syscall.MS_PRIVATE|syscall.MS_REC, ""); err != nil {
 		return fmt.Errorf("failed to enable the mount namespace work properly: %v", err)
@@ -75,7 +65,7 @@ func pivotRoot(root string) error {
 		return fmt.Errorf("failed to mount rootfs to itself: %v", err)
 	}
 
-	pivotDir := filepath.Join(root, ".oldroot")
+	pivotDir := path.Join(root, ".oldroot")
 	if err := os.Mkdir(pivotDir, 0700); err != nil {
 		return fmt.Errorf("failed to mkdir old_root %s: %v", pivotDir, err)
 	}
@@ -88,7 +78,7 @@ func pivotRoot(root string) error {
 		return fmt.Errorf("failed to syscall chdir /: %v", err)
 	}
 
-	pivotDir = filepath.Join("/", ".oldroot")
+	pivotDir = path.Join("/", ".oldroot")
 	if err := syscall.Unmount(pivotDir, syscall.MNT_DETACH); err != nil {
 		return fmt.Errorf("failed to unmount pivot_root dir: %v", err)
 	}
@@ -126,7 +116,7 @@ func mountVFS() error {
 	return nil
 }
 
-func setupDevSymlinks() error {
+func createDevSymlinks() error {
 	// kcore support can be toggled with CONFIG_PROC_KCORE;
 	// only create a symlink in /dev if it exists in /proc.
 	if exist, _ := util.FileOrDirExists("/proc/kcore"); exist {

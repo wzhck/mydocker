@@ -99,8 +99,7 @@ func (ipam *IPAM) Release(nw *Network, ip *net.IP) error {
 	releaseIPInt := IP2Int(*ip)
 	index := int(releaseIPInt) - int(subnetIPInt)
 
-	log.Debugf("first ip: %s => %d", nw.IPNet.IP, subnetIPInt)
-	log.Debugf("release ip: %s => %d", *ip, releaseIPInt)
+	log.Debugf("release the ipaddr: %s", *ip)
 
 	if index <= 1 || index >= len(bitmaps) {
 		return fmt.Errorf("the ip addr '%s' is out of iprange", ip)

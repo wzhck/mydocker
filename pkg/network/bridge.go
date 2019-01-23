@@ -158,7 +158,7 @@ func setInterfaceIP(ifaceName string, ipNet *net.IPNet) error {
 	// addr.Broadcast = broadcast.IP
 
 	// ip addr add $addr dev $ifaceName
-	log.Debugf("set the ip address %s on the bridge %s", ipNet.IP, ifaceName)
+	log.Debugf("set the ip addr %s on the interface %s", ipNet.IP, ifaceName)
 	return netlink.AddrAdd(iface, addr)
 }
 
