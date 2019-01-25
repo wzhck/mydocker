@@ -216,7 +216,7 @@ Version: '5.7.25'  socket: '/var/run/mysqld/mysqld.sock'  port: 3306  MySQL Comm
 ### execute a command in the container
 
 ```bash
-$ mydocker exec mysql-test -- mysql -uroot -pr00tme -e 'show\ databases;'
+$ mydocker exec mysql-test -- mysql -uroot -pr00tme -e 'show databases;'
 mysql: [Warning] Using a password on the command line interface can be insecure.
 +--------------------+
 | Database           |
@@ -322,7 +322,7 @@ $ mydocker rm mysql-test
 ## use `--debug` option of mydocker to show debug logs
 
 ```bash
-$ mydocker --debug exec mysql-test -- mysql -uroot -pr00tme -e 'show\ databases;'
+$ mydocker --debug exec mysql-test -- mysql -uroot -pr00tme -e 'show databases;'
 [2019-01-25 09:55:03] DEBUG initing networks only once before each mydocker command
 [2019-01-25 09:55:03] DEBUG found a network mydocker0 of driver bridge
 [2019-01-25 09:55:03] DEBUG initing network mydocker0 of driver bridge
@@ -353,9 +353,9 @@ $ mydocker --debug exec mysql-test -- mysql -uroot -pr00tme -e 'show\ databases;
         "CreateTime": "2019-01-25 09:44:38"
     }
 }
-[2019-01-25 09:55:03] DEBUG will execute command 'mysql -uroot -pr00tme -e show\ databases;' in the container (pid: 30942)
+[2019-01-25 09:55:03] DEBUG will execute command <mysql -uroot -pr00tme -e 'show databases;'> in the container (pid: 30942)
 got the env container_pid: 30942
-got the env container_cmd: mysql -uroot -pr00tme -e show\ databases;
+got the env container_cmd: mysql -uroot -pr00tme -e 'show databases;'
 got the env cgroup_root: /sys/fs/cgroup
 got the env cgroup_path: /mydocker/4f2322145e66
 add the process 32176 to /sys/fs/cgroup/cpu/mydocker/4f2322145e66/cgroup.procs

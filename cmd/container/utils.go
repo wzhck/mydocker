@@ -93,6 +93,14 @@ func parseExecArgs(ctx *cli.Context) (*container.Container, []string, error) {
 	var cmdArray []string
 	for _, arg := range ctx.Args().Tail() {
 		if arg != "--" {
+			// if the arg contains space e.g. -a '1 2 3'
+			// we need to treat the whole string "1 2 3"
+			// as one argument by adding a pair of single
+			// quotes, because Exec() will use a space to
+			// seperate all standalone argumenmts.
+			if strings.Contains(arg, " ") {
+				arg = fmt.Sprintf("'%s'", arg)
+			}
 			cmdArray = append(cmdArray, arg)
 		}
 	}

@@ -99,7 +99,7 @@ func (c *Container) Logs(ctx *cli.Context) error {
 
 func (c *Container) Exec(cmdArray []string) error {
 	cmdStr := strings.Join(cmdArray, " ")
-	log.Debugf("will execute command '%s' in the container "+
+	log.Debugf("will execute command <%s> in the container "+
 		"(pid: %d)", cmdStr, c.Cgroups.Pid)
 
 	cmd := exec.Command("/proc/self/exe", "exec")
