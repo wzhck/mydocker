@@ -500,3 +500,7 @@ Showing mysql-test as a container:
     ]
 }
 ```
+
+## License
+
+See the [LICENSE](https://github.com/weikeit/mydocker/blob/master/LICENSE.md) file for license rights and limitations (MIT).
