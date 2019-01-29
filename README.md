@@ -9,15 +9,14 @@ This is just an experimental cli tool, which implements lowlevel techniques such
 ## Environment Requirements
 
 - [Ubuntu](https://www.ubuntu.com/download/server) 16.04/18.04 LTS
-- [Docker-CE](https://docs.docker.com/v17.09/engine/installation/linux/docker-ce/ubuntu/) installed
+- [Docker-CE](https://docs.docker.com/install/linux/docker-ce/ubuntu/) latest stable version
+- [Go](https://golang.org/dl/) latest stable version
+- [Gcc](https://gcc.gnu.org/) compile `cgo` codes
 
-## Download Mydocker From GitHub
+## Install Mydocker From GitHub
 
 ```bash
-$ mkdir -p $GOPATH/src/github.com/weikeit
-$ cd $GOPATH/src/github.com/weikeit
-$ git clone git@github.com:weikeit/mydocker.git
-$ go build -o /usr/local/bin/mydocker mydocker
+$ go get -u github.com/weikeit/mydocker
 ```
 
 ## Overview of Mydocker Command
