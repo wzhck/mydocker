@@ -216,7 +216,8 @@ func (c *Container) Load() error {
 
 	jsonBytes, err := ioutil.ReadFile(configFileName)
 	if len(jsonBytes) == 0 {
-		return nil
+		return fmt.Errorf("the configFile of container %s is empty",
+			configFileName)
 	}
 	if err != nil {
 		return fmt.Errorf("failed to read container config %s: %v",

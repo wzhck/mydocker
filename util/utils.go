@@ -87,13 +87,17 @@ func Umount(mntPoint string) error {
 		return nil
 	}
 
-	log.Debugf("umounting the dir: %s", mntPoint)
-	cmd := exec.Command("umount", "-f", mntPoint)
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to umount the dir %s: %v",
-			mntPoint, err)
+	log.Debugf("unmounting the dir: %s", mntPoint)
+	// execute umount command for three times with 5s timeout.
+	cmd := exec.Command("timeout", "5s", "umount", "-f", mntPoint)
+	for i := 0; i < 3; i++ {
+		if err := cmd.Run(); err == nil {
+			return nil
+		}
+		time.Sleep(500 * time.Millisecond)
 	}
-	return nil
+
+	return fmt.Errorf("failed to umount the dir %s", mntPoint)
 }
 
 func GetEnvsByPid(pid int) ([]string, error) {
