@@ -80,7 +80,7 @@ func pivotRoot() error {
 
 	pivotDir = path.Join("/", ".oldroot")
 	if err := syscall.Unmount(pivotDir, syscall.MNT_DETACH); err != nil {
-		return fmt.Errorf("failed to unmount pivot_root dir: %v", err)
+		return fmt.Errorf("failed to unmount old root dir: %v", err)
 	}
 
 	// note: need to delete the origin directory /dev
