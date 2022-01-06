@@ -3,8 +3,6 @@ package network
 import (
 	"encoding/json"
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	"github.com/weikeit/mydocker/util"
 	"io/ioutil"
 	"net"
 	"os"
@@ -12,6 +10,9 @@ import (
 	"path"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
+	"weike.sh/mydocker/util"
 )
 
 func Init() error {

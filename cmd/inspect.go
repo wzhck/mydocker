@@ -3,11 +3,12 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
-	"github.com/weikeit/mydocker/pkg/container"
-	"github.com/weikeit/mydocker/pkg/image"
-	"github.com/weikeit/mydocker/pkg/network"
+	"weike.sh/mydocker/pkg/container"
+	"weike.sh/mydocker/pkg/image"
+	"weike.sh/mydocker/pkg/network"
 )
 
 var Inspect = cli.Command{

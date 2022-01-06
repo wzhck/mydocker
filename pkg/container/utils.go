@@ -2,12 +2,13 @@ package container
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	"github.com/weikeit/mydocker/util"
 	"io/ioutil"
 	"os"
 	"regexp"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
+	"weike.sh/mydocker/util"
 )
 
 func sendInitCommand(cmds []string, writePipe *os.File) {
@@ -34,7 +35,7 @@ func receiveInitCommand() []string {
 
 func GetAllContainers() ([]*Container, error) {
 	exist, _ := util.FileOrDirExists(ContainersDir)
-	if ! exist {
+	if !exist {
 		if err := os.MkdirAll(ContainersDir, 0755); err != nil {
 			return nil, fmt.Errorf("failed to mkdir %s: %v", ContainersDir, err)
 		}

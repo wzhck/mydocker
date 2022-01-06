@@ -2,17 +2,18 @@ package main
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
-	"github.com/weikeit/mydocker/cmd"
-	"github.com/weikeit/mydocker/cmd/container"
-	"github.com/weikeit/mydocker/cmd/image"
-	"github.com/weikeit/mydocker/cmd/network"
-	netpkg "github.com/weikeit/mydocker/pkg/network"
-	"github.com/x-cray/logrus-prefixed-formatter"
 	"math/rand"
 	"os"
 	"time"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/urfave/cli"
+	prefixed "github.com/x-cray/logrus-prefixed-formatter"
+	"weike.sh/mydocker/cmd"
+	"weike.sh/mydocker/cmd/container"
+	"weike.sh/mydocker/cmd/image"
+	"weike.sh/mydocker/cmd/network"
+	netpkg "weike.sh/mydocker/pkg/network"
 )
 
 const usage = `mydocker is a simple container runtime implementation.

@@ -2,12 +2,13 @@ package container
 
 import (
 	"fmt"
-	"github.com/weikeit/mydocker/pkg/image"
-	"github.com/weikeit/mydocker/util"
 	"os"
 	"os/exec"
 	"path"
 	"syscall"
+
+	"weike.sh/mydocker/pkg/image"
+	"weike.sh/mydocker/util"
 )
 
 func (c *Container) NewParentProcess() (*exec.Cmd, *os.File, error) {

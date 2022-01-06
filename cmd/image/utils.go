@@ -2,11 +2,12 @@ package image
 
 import (
 	"fmt"
-	"github.com/urfave/cli"
-	"github.com/weikeit/mydocker/pkg/image"
 	"os"
 	"strings"
 	"text/tabwriter"
+
+	"github.com/urfave/cli"
+	"weike.sh/mydocker/pkg/image"
 )
 
 func pull(ctx *cli.Context) error {

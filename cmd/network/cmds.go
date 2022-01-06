@@ -2,7 +2,7 @@ package network
 
 import (
 	"github.com/urfave/cli"
-	"github.com/weikeit/mydocker/pkg/network"
+	"weike.sh/mydocker/pkg/network"
 )
 
 var Command = cli.Command{

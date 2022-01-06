@@ -2,12 +2,13 @@ package network
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
-	"github.com/weikeit/mydocker/pkg/container"
-	"github.com/weikeit/mydocker/pkg/network"
 	"os"
 	"text/tabwriter"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/urfave/cli"
+	"weike.sh/mydocker/pkg/container"
+	"weike.sh/mydocker/pkg/network"
 )
 
 func listNetworks(_ *cli.Context) error {
@@ -129,8 +130,7 @@ func handleConnection(ctx *cli.Context, action string) error {
 			}
 			if ep.Network.Name == nwName {
 				// note: don't forget to release the ipaddr.
-				if err := network.IPAllocator.Release(nw, &ep.IPAddr);
-					err != nil {
+				if err := network.IPAllocator.Release(nw, &ep.IPAddr); err != nil {
 					return err
 				}
 			} else {

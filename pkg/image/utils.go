@@ -3,14 +3,15 @@ package image
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/c2h5oh/datasize"
-	"github.com/weikeit/mydocker/util"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/c2h5oh/datasize"
+	"weike.sh/mydocker/util"
 )
 
 func Exist(imageName string) bool {

@@ -3,8 +3,8 @@ package container
 import (
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
-	"github.com/weikeit/mydocker/pkg/cgroups"
-	"github.com/weikeit/mydocker/pkg/container"
+	"weike.sh/mydocker/pkg/cgroups"
+	"weike.sh/mydocker/pkg/container"
 )
 
 var Init = cli.Command{

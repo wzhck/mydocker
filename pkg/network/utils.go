@@ -3,12 +3,13 @@ package network
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/weikeit/mydocker/util"
 	"io/ioutil"
 	"net"
 	"os"
 	"path"
 	"strings"
+
+	"weike.sh/mydocker/util"
 )
 
 func IP2Int(ip net.IP) uint32 {

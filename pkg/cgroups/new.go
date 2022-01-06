@@ -2,12 +2,13 @@ package cgroups
 
 import (
 	"fmt"
-	"github.com/urfave/cli"
-	"github.com/weikeit/mydocker/util"
 	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
+
+	"github.com/urfave/cli"
+	"weike.sh/mydocker/util"
 )
 
 func NewResources(ctx *cli.Context) (*Resources, error) {
@@ -368,7 +369,7 @@ func parseDevice(arg string) (*Device, error) {
 		return nil, fmt.Errorf("invalid access, must be [rwm]{1,3}")
 	}
 
-	return &Device{Path: src, Access: access,}, nil
+	return &Device{Path: src, Access: access}, nil
 }
 
 func parsePidsFlags(ctx *cli.Context, r *Resources) error {

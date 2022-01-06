@@ -2,9 +2,10 @@ package container
 
 import (
 	"fmt"
-	"github.com/weikeit/mydocker/util"
 	"os"
 	"os/exec"
+
+	"weike.sh/mydocker/util"
 )
 
 type AufsDriver struct{}

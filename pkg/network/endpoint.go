@@ -3,11 +3,12 @@ package network
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/vishvananda/netlink"
-	"github.com/weikeit/mydocker/util"
 	"net"
 	"os"
 	"strings"
+
+	"github.com/vishvananda/netlink"
+	"weike.sh/mydocker/util"
 )
 
 func (ep *Endpoint) Connect(pid int) error {

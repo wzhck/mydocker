@@ -2,11 +2,12 @@ package image
 
 import (
 	"fmt"
-	"github.com/Pallinder/go-randomdata"
-	"github.com/weikeit/mydocker/util"
 	"os"
 	"os/exec"
 	"path"
+
+	"github.com/Pallinder/go-randomdata"
+	"weike.sh/mydocker/util"
 )
 
 func (img *Image) RootDir() string {

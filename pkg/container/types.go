@@ -1,9 +1,10 @@
 package container
 
 import (
-	"github.com/weikeit/mydocker/pkg/cgroups"
-	"github.com/weikeit/mydocker/pkg/network"
 	"os"
+
+	"weike.sh/mydocker/pkg/cgroups"
+	"weike.sh/mydocker/pkg/network"
 )
 
 type Rootfs struct {

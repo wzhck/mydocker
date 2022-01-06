@@ -2,14 +2,15 @@ package cgroups
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	"github.com/weikeit/mydocker/util"
 	"io/ioutil"
 	"os"
 	"path"
 	"strconv"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
+	"weike.sh/mydocker/util"
 )
 
 const (

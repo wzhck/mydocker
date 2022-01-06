@@ -2,10 +2,11 @@ package cgroups
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	"github.com/weikeit/mydocker/util"
 	"io/ioutil"
 	"path"
+
+	log "github.com/sirupsen/logrus"
+	"weike.sh/mydocker/util"
 )
 
 const (

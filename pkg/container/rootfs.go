@@ -2,9 +2,10 @@ package container
 
 import (
 	"fmt"
-	"github.com/weikeit/mydocker/util"
 	"os"
 	"path"
+
+	"weike.sh/mydocker/util"
 )
 
 func (c *Container) prepareRootfs() error {

@@ -2,10 +2,11 @@ package network
 
 import (
 	"fmt"
-	"github.com/weikeit/mydocker/util"
 	"net"
 	"os/exec"
 	"strings"
+
+	"weike.sh/mydocker/util"
 )
 
 func setBridgeIptablesRules(bridgeName string, subnet *net.IPNet) error {

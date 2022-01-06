@@ -2,8 +2,6 @@ package container
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	"github.com/weikeit/mydocker/util"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -12,6 +10,9 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+
+	log "github.com/sirupsen/logrus"
+	"weike.sh/mydocker/util"
 )
 
 func RunContainerInitProcess() error {
@@ -84,7 +85,7 @@ func pivotRoot() error {
 	}
 
 	// note: need to delete the origin directory /dev
-	for _, dir := range []string{pivotDir, "/dev",} {
+	for _, dir := range []string{pivotDir, "/dev"} {
 		if err := os.RemoveAll(dir); err != nil {
 			return err
 		}
