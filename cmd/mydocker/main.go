@@ -9,10 +9,10 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
-	"weike.sh/mydocker/cmd"
-	"weike.sh/mydocker/cmd/container"
-	"weike.sh/mydocker/cmd/image"
-	"weike.sh/mydocker/cmd/network"
+	"weike.sh/mydocker/pkg/cmd"
+	"weike.sh/mydocker/pkg/cmd/container"
+	"weike.sh/mydocker/pkg/cmd/image"
+	"weike.sh/mydocker/pkg/cmd/network"
 	netpkg "weike.sh/mydocker/pkg/network"
 )
 
